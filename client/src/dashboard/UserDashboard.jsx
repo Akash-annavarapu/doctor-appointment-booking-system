@@ -29,11 +29,11 @@ function UserDashboard() {
     <>
       <Navbar />
 
-      <main className="container py-5">
+      <main className="container py-5 user-dashboard-layout">
         <div className="row justify-content-center">
-          <div className="col-lg-6">
-            <div className="card shadow-lg border-0 rounded-4">
-              <div className="card-body p-4">
+          <div className="col-lg-7 col-xl-6">
+            <div className="card shadow-sm border-0 rounded-4 user-dashboard-card">
+              <div className="card-body p-4 p-md-5">
                 <h2 className="text-center text-primary fw-bold mb-4">
                   User Dashboard
                 </h2>

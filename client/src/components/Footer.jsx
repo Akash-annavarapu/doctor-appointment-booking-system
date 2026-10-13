@@ -1,14 +1,12 @@
 function Footer() {
   return (
-    <footer
-      style={{
-        textAlign: "center",
-        padding: "20px",
-        marginTop: "40px",
-        background: "#f8f9fa",
-      }}
-    >
-      <p>© 2026 Doctor Appointment Booking System</p>
+    <footer className="app-footer">
+      <div className="container text-center">
+        <p className="mb-1 fw-semibold">© 2026 TestPilot · Healthcare Booking</p>
+        <small className="text-secondary">
+          Powered by an existing open-source doctor appointment application.
+        </small>
+      </div>
     </footer>
   );
 }

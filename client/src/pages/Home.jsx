@@ -26,11 +26,12 @@ function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <div className="container py-5">
-        <div className="row align-items-center">
+      <div className="container py-5 home-hero">
+        <div className="row align-items-center g-4 g-lg-5">
           <div className="col-lg-6 text-center text-lg-start">
-            <h1 className="display-4 fw-bold text-primary">
-              Doctor Appointment Booking System
+            <span className="home-eyebrow">TestPilot · Healthcare booking</span>
+            <h1 className="display-4 fw-bold text-primary home-hero-title">
+              Doctor appointments, made simple.
             </h1>
 
             <p className="lead mt-3">
@@ -41,7 +42,7 @@ function Home() {
               <button
                 type="button"
                 onClick={handleBookAppointment}
-                className="btn btn-primary btn-lg me-3"
+                className="btn btn-primary btn-lg me-3 mb-2 mb-sm-0"
               >
                 Book Appointment
               </button>
@@ -60,7 +61,7 @@ function Home() {
           <div className="col-lg-6 text-center mt-5 mt-lg-0">
             <img
               src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=700"
-              className="img-fluid rounded shadow"
+              className="img-fluid rounded shadow home-hero-image"
               alt="Doctor"
             />
           </div>
@@ -68,14 +69,14 @@ function Home() {
       </div>
 
       {/* Features Section */}
-      <div className="container py-5">
+      <div className="container py-5 home-features">
         <h2 className="text-center text-dark fw-bold mb-5">
-          Why Choose DocBook?
+          Why Choose TestPilot?
         </h2>
 
         <div className="row g-4">
           <div className="col-md-4">
-            <div className="card shadow h-100 text-center">
+            <div className="card shadow-sm h-100 text-center home-feature-card">
               <div className="card-body">
                 <h1>👨‍⚕️</h1>
 
@@ -92,7 +93,7 @@ function Home() {
           </div>
 
           <div className="col-md-4">
-            <div className="card shadow h-100 text-center">
+            <div className="card shadow-sm h-100 text-center home-feature-card">
               <div className="card-body">
                 <h1>📅</h1>
 
@@ -108,7 +109,7 @@ function Home() {
           </div>
 
           <div className="col-md-4">
-            <div className="card shadow h-100 text-center">
+            <div className="card shadow-sm h-100 text-center home-feature-card">
               <div className="card-body">
                 <h1>⏰</h1>
 
@@ -126,7 +127,7 @@ function Home() {
       </div>
 
       {/* Statistics Section */}
-      <div className="bg-primary text-white py-5 mt-5">
+      <div className="bg-primary text-white py-5 mt-5 home-statistics">
         <div className="container">
           <div className="row text-center">
             <div className="col-md-4 mb-4">

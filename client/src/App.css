@@ -101,3 +101,132 @@ footer {
   }
 
 }
+
+/* =====================================
+   TestPilot visual polish (UI only)
+   Scoped to the main layout and pages.
+===================================== */
+
+.app-navbar {
+  background: linear-gradient(105deg, #123c89 0%, #1766d8 100%) !important;
+}
+
+.app-navbar .navbar-brand {
+  letter-spacing: 0.015em;
+}
+
+.app-navbar .nav-link {
+  transition: opacity 0.2s ease;
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .nav-link:focus-visible {
+  opacity: 0.82;
+}
+
+.home-hero {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  padding: 2.5rem !important;
+  border-radius: 1.5rem;
+  background: linear-gradient(120deg, #eff6ff 0%, #ffffff 70%, #eff8ff 100%);
+}
+
+.home-eyebrow {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid #c8dafa;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #2256a7;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+
+.home-hero-title {
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.home-hero .lead {
+  max-width: 32rem;
+  color: #4f6075;
+  line-height: 1.65;
+}
+
+.home-hero .btn {
+  min-height: 48px;
+  padding: 0.7rem 1.35rem;
+  font-weight: 600;
+}
+
+.home-hero .btn-outline-primary {
+  background-color: #ffffff;
+}
+
+.home-hero-image {
+  width: 100%;
+  max-height: 410px;
+  object-fit: cover;
+  border-radius: 1.15rem !important;
+  box-shadow: 0 18px 35px rgba(20, 55, 100, 0.14) !important;
+}
+
+.home-feature-card {
+  border: 1px solid #e5ecf6 !important;
+  border-radius: 1.25rem;
+}
+
+.home-feature-card .card-body {
+  padding: 2rem 1.5rem;
+}
+
+.home-feature-card .card-title {
+  color: #163f84;
+}
+
+.home-statistics {
+  background: linear-gradient(105deg, #123c89 0%, #1766d8 100%) !important;
+}
+
+.user-dashboard-card {
+  border: 1px solid #e7edf7 !important;
+  box-shadow: 0 16px 36px rgba(17, 47, 96, 0.1) !important;
+}
+
+.user-dashboard-card .btn {
+  min-height: 48px;
+  font-weight: 600;
+}
+
+.app-footer {
+  margin-top: auto;
+  padding: 0.75rem 0;
+  border-top: 1px solid #e7edf7;
+  background: #f3f7fc;
+  color: #254469;
+}
+
+@media (max-width: 767.98px) {
+  .home-hero {
+    margin-top: 0.75rem;
+    padding: 1.5rem !important;
+    border-radius: 1rem;
+  }
+
+  .home-hero-title {
+    font-size: clamp(2rem, 8vw, 2.75rem);
+  }
+
+  .home-hero-image {
+    max-height: 300px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-navbar .nav-link {
+    transition: none;
+  }
+}

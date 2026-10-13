@@ -31,7 +31,7 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm app-navbar">
       <div className="container">
 
         <Link
@@ -39,7 +39,7 @@ function Navbar() {
           to="/"
           onClick={closeMenu}
         >
-          🏥 DocBook
+          🏥 TestPilot
         </Link>
 
         <button
