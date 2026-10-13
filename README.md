@@ -1,3 +1,23 @@
+# TestPilot — Deployed Healthcare App & Test-Design Milestones
+
+**TestPilot** is an academic AI-assisted test-case-generation *design project* built around this existing open-source doctor appointment booking application, which is the **system under test**. Its current UI is customized for the project; the healthcare booking functionality remains the existing application.
+
+**Live TestPilot frontend:** https://doctor-appointment-frontend-9dbs.onrender.com/  
+**Deployed backend:** https://doctor-appointment-booking-system-u1eq.onrender.com/  
+**Hosting and database:** Render + MongoDB Atlas.
+
+### Milestone documents for project review
+
+1. **[Milestone 2 report: actual features, actors, use cases and proposed strategy](docs/TESTPILOT_MILESTONE_2.md)**
+2. **[Code-traceable illustrative test-case matrix (36 designed cases)](docs/TEST_CASE_MATRIX.md)**
+3. **[Theoretical LLM generation workflow, prompt and validation contract](docs/LLM_TEST_CASE_DESIGN.md)**
+
+**Progress declaration:** Existing app deployment and documentation are complete. **LLM-assisted case generation is proposed, not built or tested yet**; there is no claim of executed AI-generated test cases. A full live booking demo needs an approved doctor account with valid availability. The screenshot showing “No approved doctors found” is an empty-data state, not proof of broken connectivity.
+
+The rest of this README describes the original application's implementation and reference materials. Some pre-existing demo links refer to the original author's deployment, **not** this TestPilot fork. The source application remains subject to its repository license and upstream attribution.
+
+---
+
 # Doctor Appointment Booking System
 
 A full-stack MERN application for doctor discovery, doctor applications, appointment scheduling, notifications, availability management, and secure medical document sharing.
