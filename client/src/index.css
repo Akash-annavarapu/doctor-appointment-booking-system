@@ -512,3 +512,93 @@ p { line-height: 1.75; }
   .btn, .app-navbar .nav-link, .home-feature-card { transition: none; }
   .btn:hover { transform: none; }
 }
+
+
+/* TestPilot read-only test case catalog */
+.testpilot-library {
+  flex: 1;
+  color: #40536b;
+}
+.testpilot-intro {
+  background: linear-gradient(115deg, #e8f3ff, #f5fffe);
+  padding: clamp(1.6rem, 3vw, 2.7rem);
+  border: 1px solid #d9e9f5;
+  border-radius: 1.25rem;
+}
+.testpilot-intro h1 {
+  color: #123c68;
+  letter-spacing: -0.045em;
+}
+.testpilot-intro p { max-width: 55rem; }
+.testpilot-eyebrow {
+  display: inline-block;
+  color: #1766d8;
+  font-weight: 800;
+  font-size: 0.77rem;
+  letter-spacing: 0.09em;
+}
+.testpilot-status-label {
+  background: white;
+  color: #375c78;
+  border: 1px solid #d5e5ef;
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.77rem;
+  font-weight: 600;
+}
+.testpilot-stat, .testpilot-filters, .testpilot-case, .testpilot-empty {
+  background: #fff;
+  border: 1px solid #e0eaf3;
+  border-radius: 1rem;
+  box-shadow: 0 8px 22px rgba(24, 62, 98, 0.045);
+}
+.testpilot-stat { padding: 1.2rem 1.4rem; min-height: 100%; }
+.testpilot-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  color: #123c68;
+  line-height: 1.2;
+}
+.testpilot-stat-label { font-size: 0.87rem; color: #536b82; }
+.testpilot-filters { padding: 1.35rem; }
+.testpilot-filters .form-label { font-size: 0.86rem; font-weight: 700; color: #244868; }
+.testpilot-case { padding: 1.4rem; }
+.testpilot-case h3 { line-height: 1.5; color: #183f66; }
+.testpilot-id {
+  font-size: 0.83rem;
+  letter-spacing: 0.05em;
+  font-weight: 800;
+  color: #1766d8;
+}
+.testpilot-not-run {
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #f1f4f8;
+  color: #5d6775;
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+}
+.testpilot-chip {
+  font-size: 0.75rem;
+  font-weight: 650;
+  background: #eef5fc;
+  border-radius: 999px;
+  padding: 0.4rem 0.68rem;
+  color: #315c82;
+}
+.testpilot-detail {
+  padding: 1.1rem;
+  border-radius: 0.85rem;
+  background: #f5f9ff;
+  border: 1px solid #e1eafa;
+  font-size: 0.87rem;
+}
+.testpilot-detail strong { color: #1e4768; }
+.testpilot-empty { padding: 2rem; text-align: center; }
+.testpilot-catalog-note { font-size: 0.87rem; color: #64758a; }
+@media (max-width: 575.98px) {
+  .testpilot-filters, .testpilot-case { padding: 1.1rem; }
+  .testpilot-stat-value { font-size: 1.6rem; }
+}

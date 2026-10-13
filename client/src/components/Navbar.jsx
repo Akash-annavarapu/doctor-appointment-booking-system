@@ -66,6 +66,16 @@ function Navbar() {
               </Link>
             </li>
 
+            <li className="nav-item">
+              <Link
+                className="nav-link"
+                to="/test-cases"
+                onClick={closeMenu}
+              >
+                Test Cases
+              </Link>
+            </li>
+
             {!isAuthenticated ? (
               <>
                 <li className="nav-item">

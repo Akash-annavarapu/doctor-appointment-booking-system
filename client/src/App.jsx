@@ -8,6 +8,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import Home from "./pages/Home";
+import TestCases from "./pages/TestCases";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Doctors from "./pages/Doctors";
@@ -48,6 +49,12 @@ function App() {
         <Route
           path="/register"
           element={<Register />}
+        />
+
+
+        <Route
+          path="/test-cases"
+          element={<TestCases />}
         />
 
 
