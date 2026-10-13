@@ -123,6 +123,10 @@ describe(
         expect(
           screen.getByText("Register")
         ).toBeInTheDocument();
+
+        expect(
+          screen.getByRole("link", { name: "Test Cases" })
+        ).toHaveAttribute("href", "/test-cases");
       }
     );
 

@@ -6,6 +6,10 @@
 **Deployed backend:** https://doctor-appointment-booking-system-u1eq.onrender.com/  
 **Hosting and database:** Render + MongoDB Atlas.
 
+**NEW — Live Test Case Dashboard:** https://doctor-appointment-frontend-9dbs.onrender.com/test-cases
+
+**[Implementation guide: test-case dashboard + automated regression checks](docs/TESTPILOT_IMPLEMENTATION_PHASE_1.md)**
+
 ### Milestone documents for project review
 
 1. **[Milestone 2 report: actual features, actors, use cases and proposed strategy](docs/TESTPILOT_MILESTONE_2.md)**
