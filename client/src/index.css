@@ -20,9 +20,10 @@ body {
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  background-color: #f8f9fa;
-  color: #212529;
+  font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+  background-color: #f6faff;
+  color: #40536b;
+  line-height: 1.6;
 }
 
 /* ===========================
@@ -258,4 +259,256 @@ footer {
     left: 1rem;
     width: auto;
   }
+}
+
+
+/* TestPilot · healthcare-inspired UI refresh
+   Live styles are kept here because main.jsx imports index.css. */
+:root {
+  --tp-navy: #123c68;
+  --tp-blue: #1766d8;
+  --tp-teal: #16877f;
+  --tp-body: #40536b;
+  --tp-soft: #f6faff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+p { line-height: 1.75; }
+
+.app-navbar {
+  background: linear-gradient(108deg, #103b71, #1766d8) !important;
+  box-shadow: 0 5px 20px rgba(16, 59, 113, 0.14) !important;
+}
+
+.app-navbar .container { gap: 1rem; }
+
+.app-navbar .navbar-brand {
+  color: #fff;
+  font-size: 1.55rem;
+  letter-spacing: -0.035em;
+}
+
+.app-navbar .nav-link {
+  font-size: 0.93rem;
+  font-weight: 600;
+  padding: 0.65rem 0.85rem !important;
+  transition: opacity 180ms ease;
+}
+
+.app-navbar .nav-link:hover { opacity: 0.84; }
+
+.btn {
+  border-radius: 0.85rem;
+  font-weight: 600;
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.btn:hover { transform: translateY(-1px); }
+
+.btn-primary {
+  background-color: var(--tp-blue);
+  border-color: var(--tp-blue);
+  box-shadow: 0 5px 14px rgba(23, 102, 216, 0.14);
+}
+
+.btn-primary:hover {
+  background-color: #1052b2;
+  border-color: #1052b2;
+  box-shadow: 0 8px 18px rgba(23, 102, 216, 0.22);
+}
+
+.btn-outline-primary {
+  color: #125abc;
+  border-color: #1766d8;
+}
+
+.btn:focus-visible, .app-navbar a:focus-visible {
+  outline: 3px solid #f5b63e;
+  outline-offset: 3px;
+}
+
+/* Homepage */
+.home-hero {
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+  padding: clamp(1.75rem, 4vw, 3.5rem) !important;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(127, 205, 230, 0.20), transparent 32%),
+    linear-gradient(116deg, #ebf5ff 0%, #ffffff 61%, #effbf9 100%);
+  border: 1px solid #e5eff8;
+  border-radius: 1.6rem;
+  box-shadow: 0 16px 45px rgba(30, 72, 115, 0.07);
+}
+
+.home-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #cce8e5;
+  color: #086960;
+  background: #edfaf7;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}
+
+.home-hero-title,
+.home-hero-title.text-primary {
+  color: var(--tp-navy) !important;
+  font-size: clamp(2.3rem, 4.1vw, 3.85rem);
+  letter-spacing: -0.052em;
+  line-height: 1.13;
+  max-width: 12ch;
+}
+
+.home-hero .lead {
+  max-width: 35rem;
+  font-size: clamp(1rem, 1.5vw, 1.16rem);
+  line-height: 1.8;
+  color: var(--tp-body);
+}
+
+.home-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.home-cta-actions .btn {
+  min-height: 50px;
+  padding: 0.8rem 1.4rem;
+}
+
+.home-cta-actions .btn-outline-primary { background: #fff; }
+
+.home-image-shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.45rem;
+  aspect-ratio: 1.18;
+  box-shadow: 0 22px 44px rgba(19, 56, 92, 0.15);
+  background: #dceef7;
+}
+
+.home-hero-image {
+  display: block;
+  width: 100%;
+  height: 100% !important;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
+}
+
+.home-photo-note {
+  position: absolute;
+  bottom: 1.15rem;
+  left: 1.15rem;
+  right: 1.15rem;
+  width: fit-content;
+  max-width: calc(100% - 2.3rem);
+  padding: 0.75rem 0.95rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #183b58;
+  box-shadow: 0 8px 18px rgba(10, 40, 70, 0.12);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.home-features .home-section-eyebrow {
+  color: var(--tp-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.home-features h2 { color: var(--tp-navy) !important; }
+
+.home-feature-card {
+  border: 1px solid #e3edf6 !important;
+  border-radius: 1.35rem;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(23, 70, 120, 0.065) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.home-feature-card .card-body { padding: 2rem 1.6rem; }
+.home-feature-card .card-title { color: var(--tp-navy); font-weight: 700; }
+.home-feature-card .card-text { color: var(--tp-body); margin-top: 0.75rem; }
+
+.home-feature-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.15rem;
+  border-radius: 1.15rem;
+  background: #eaf3ff;
+  font-size: 2rem;
+}
+
+.home-statistics {
+  background: linear-gradient(110deg, #103b71, #1766d8) !important;
+}
+.home-statistics .container { padding-block: 0.5rem; }
+.home-step {
+  height: 100%;
+  border: 1px solid rgba(255,255,255,0.24);
+  border-radius: 1.1rem;
+  padding: 1.4rem 1.1rem;
+  background: rgba(255,255,255,0.08);
+}
+.home-step-number {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #a9ebdf;
+}
+.home-step h3 { color: #fff; font-size: 1.05rem; font-weight: 700; }
+.home-step p { color: #e4f0ff; font-size: 0.88rem; margin-bottom: 0; }
+
+.user-dashboard-card {
+  border: 1px solid #e5edf6 !important;
+  box-shadow: 0 16px 40px rgba(19, 56, 92, 0.095) !important;
+}
+.user-dashboard-card h2 { color: var(--tp-navy) !important; }
+.user-dashboard-card h4 { color: #244769; }
+.user-dashboard-card .btn { min-height: 50px; }
+
+.app-footer {
+  border-top: 1px solid #e5edf6;
+  background: #f0f6fc;
+  color: #2d5577;
+}
+.app-footer .text-secondary { color: #607b90 !important; }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .home-feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(23, 70, 120, 0.11) !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .home-hero { margin-top: 0.85rem; padding: 1.45rem !important; border-radius: 1.05rem; }
+  .home-hero-title { max-width: unset; }
+  .home-cta-actions { flex-direction: column; align-items: stretch; }
+  .home-cta-actions .btn { width: 100%; }
+  .home-image-shell { aspect-ratio: 1.34; }
+  .home-photo-note { left: 0.7rem; bottom: 0.7rem; font-size: 0.74rem; }
+  .home-statistics .row { gap: 0.3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .app-navbar .nav-link, .home-feature-card { transition: none; }
+  .btn:hover { transform: none; }
 }
