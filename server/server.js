@@ -23,10 +23,10 @@ const startServer = async () => {
       );
     });
 
-  } catch (error) {
-    console.error(
-      "❌ Server startup failed"
-    );
+ } catch (error) {
+  console.error("❌ Server startup failed:", error);
+  process.exit(1);
+}
 
     process.exit(1);
   }
