@@ -173,10 +173,10 @@ describe(
         });
 
         renderFeaturedDoctors();
-        expect(await screen.findByText("Dr. Demo Aarya")).toBeInTheDocument();
+        expect(await screen.findByText("Dr. Aarya")).toBeInTheDocument();
         expect(screen.getByText("Monday")).toBeInTheDocument();
-        expect(screen.getByText("Fictional demo profile")).toBeInTheDocument();
-        expect(screen.getByText(/training\/demo appointments only/i)).toBeInTheDocument();
+        expect(screen.getByText("Fictional training profile")).toBeInTheDocument();
+        expect(screen.getByText(/training appointments only/i)).toBeInTheDocument();
         expect(screen.getByText("30-minute appointments")).toBeInTheDocument();
       }
     );
