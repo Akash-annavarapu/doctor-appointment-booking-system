@@ -22,7 +22,7 @@ describe(
       "POST /api/v1/auth/register",
       () => {
         test(
-          "registers a valid user",
+          "TP-001: registers a valid user",
           async () => {
             const response =
               await request(app)
@@ -191,7 +191,7 @@ describe(
 
 
         test(
-          "logs in with valid credentials",
+          "TP-007: logs in with valid credentials",
           async () => {
             const response =
               await request(app)
@@ -233,7 +233,7 @@ describe(
 
 
         test(
-          "rejects an incorrect password",
+          "TP-008: rejects an incorrect password",
           async () => {
             const response =
               await request(app)
