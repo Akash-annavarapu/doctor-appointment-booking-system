@@ -64,9 +64,7 @@ function DoctorCard({ doctor, onBook }) {
           <div className="flex-grow-1">
             <h3 className="h5 fw-bold mb-1">{displayDoctorName(doctor)}</h3>
             <div className="doctor-directory-specialty">{doctor.specialization}</div>
-            {doctor.isDemo && (
-              <span className="doctor-directory-demo-tag">Fictional training profile</span>
-            )}
+
           </div>
         </div>
 
@@ -227,7 +225,7 @@ function FeaturedDoctors() {
         <>
           {doctors.some((doctor) => doctor.isDemo) && (
             <div className="doctor-directory-notice mb-4" role="note">
-              <strong>Training booking environment.</strong> Profiles marked “Fictional training profile” do
+              <strong>Training booking environment.</strong> These fictional doctor profiles do
               not represent real licensed clinicians or clinics. Schedule and booking data are
               for software testing only. Please do not enter real patient information.
             </div>
