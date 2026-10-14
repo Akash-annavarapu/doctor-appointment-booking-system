@@ -1,4 +1,6 @@
 const express = require("express");
+const aiTestRoutes = require("./routes/aiTestRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 const cors = require("cors");
 
 const authRoutes = require(
@@ -67,6 +69,12 @@ app.use(
   "/api/v1/notification",
   notificationRoutes
 );
+
+// TestPilot AI generation (admin JWT only) and signed CI reporting.
+app.use("/api/ai", aiTestRoutes);
+app.use("/api/reports", reportRoutes);
+// Compatibility with the frontend's existing /api/v1 base URL.
+app.use("/api/v1/reports", reportRoutes);
 
 // ======================================
 // Health Route
