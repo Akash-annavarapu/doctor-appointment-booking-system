@@ -2,13 +2,13 @@
 
 ## New backend APIs
 - POST /api/ai/generate-tests: administrator JWT required. Accepts framework (jest/vitest), suiteType (unit/integration/e2e), target (method/path), and at least one of useCase, apiContract or uiSchema. Optional edgeCases is an array. Calls the OpenAI Responses API and returns a reviewed:false, executionStatus:NOT_RUN candidate with JavaScript test source and assertionMap, not an executed test.
-- POST /api/reports/test-run: requires X-TestPilot-Report-Token. Validates and saves real JSON results into MongoDB, rejects invalid count totals, emits a sanitized SSE event.
+- POST /api/reports/test-run: accepts verified GitHub Actions OIDC bearer identity (or an optional manually configured X-TestPilot-Report-Token). Validates and saves real JSON results into MongoDB, rejects inconsistent counts, and emits sanitized SSE events.
 - GET /api/reports/recent and GET /api/reports/stream: public sanitized metrics, no raw logs. Both are also mounted under /api/v1/reports for the React client.
 
 The existing Express backend is CommonJS: server/services/aiTestGenerator.js is the executable implementation; server/services/aiTestGenerator.ts provides the requested TypeScript interface for typed consumers.
 
 ## Required deployment configuration
-1. On the Render backend choose AI_TEST_PROVIDER=anthropic and set ANTHROPIC_API_KEY (optional ANTHROPIC_TEST_MODEL=claude-sonnet-4-5), OR choose AI_TEST_PROVIDER=openai and set OPENAI_API_KEY. The default provider is Anthropic when an Anthropic key exists, otherwise OpenAI. A consumer Claude subscription is separate from Claude API billing. Never put keys in frontend variables or Git commits.
+1. For optional live AI generation, set OPENAI_API_KEY on the Render backend (and optionally OPENAI_TEST_MODEL=gpt-4.1-mini). Never expose API keys to the frontend or commit them to Git. **The instructor's current presentation only requires a high-level explanation; live LLM generation can be demonstrated in a later milestone.**
 2. Reporting is now secretless on trusted main-branch GitHub Actions runs via GitHub-signed OIDC identity. The server checks signature, audience, immutable repository ID, workflow reference, ref, event, expiry and matching run ID. No manual REPORT_INGEST_TOKEN is necessary for GitHub Actions. The old token is still supported for manual clients.
 3. GitHub CI reports to the known backend URL https://doctor-appointment-booking-system-u1eq.onrender.com by default. Optionally set GitHub Actions variable TESTPILOT_REPORT_API_URL to override the backend origin.
 4. Redeploy the Render backend from main, then trigger a main-branch CI run (a push or rerun) and inspect /test-cases. PR runs do not publish. Metrics are shown only from genuinely ingested runner output.

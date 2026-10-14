@@ -23,13 +23,15 @@ The TestPilot home page can display **15 clearly labeled fictional demo doctors*
 
 **[Implementation guide: test-case dashboard + automated regression checks](docs/TESTPILOT_IMPLEMENTATION_PHASE_1.md)**
 
+**[Kavi sir — three-part presentation outline](docs/KAVI_SIR_PRESENTATION.md)**
+
 ### Milestone documents for project review
 
 1. **[Milestone 2 report: actual features, actors, use cases and proposed strategy](docs/TESTPILOT_MILESTONE_2.md)**
 2. **[Code-traceable illustrative test-case matrix (36 designed cases)](docs/TEST_CASE_MATRIX.md)**
 3. **[Theoretical LLM generation workflow, prompt and validation contract](docs/LLM_TEST_CASE_DESIGN.md)**
 
-**Progress declaration:** Existing app deployment and documentation are complete. **LLM-assisted case generation is proposed, not built or tested yet**; there is no claim of executed AI-generated test cases. A full live booking demo needs an approved doctor account with valid availability. The screenshot showing “No approved doctors found” is an empty-data state, not proof of broken connectivity.
+**Presentation milestone (Kavi sir):** First show the deployed, adapted existing GitHub healthcare application; second explain its observed features and documented use cases; third explain the high-level LLM test-case generation design. Building a separate healthcare application is **not** part of the assignment. This project reuses the existing booking codebase and adds testing instrumentation. The 36-case catalog is a design artifact; actual PASS/FAIL labels are only from measured CI runs. An OpenAI-powered candidate generator has been implemented as an optional later-stage extension, but live generation is **not** claimed without an API key and a verified request. A full patient booking demo requires an approved doctor with free availability.
 
 The rest of this README describes the original application's implementation and reference materials. Some pre-existing demo links refer to the original author's deployment, **not** this TestPilot fork. The source application remains subject to its repository license and upstream attribution.
 
