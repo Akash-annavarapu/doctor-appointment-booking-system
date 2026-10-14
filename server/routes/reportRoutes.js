@@ -24,6 +24,11 @@ router.post("/test-run", authorizeReporter, async (req, res) => {
     const payload = validateReport(req.body);
     const previous = await TestRun.findOne({ runId: payload.runId });
     if (previous) {
+      if (previous.suite !== payload.suite || previous.engine !== payload.engine ||
+          JSON.stringify(previous.summary.toObject ? previous.summary.toObject() : previous.summary) !==
+          JSON.stringify(payload.summary)) {
+        return res.status(409).json({ success: false, message: "Run ID already belongs to a different report." });
+      }
       return res.status(200).json({ success: true, duplicate: true, run: publicReport(previous.toObject()) });
     }
     const stored = await TestRun.create(payload);
@@ -54,6 +59,9 @@ router.get("/recent", async (req, res) => {
 
 // Per-instance low-latency updates; the browser also polls to handle multi-instance Render deployments.
 router.get("/stream", (req, res) => {
+  if (events.listenerCount("report") >= 100) {
+    return res.status(503).json({ success: false, message: "Live stream capacity reached." });
+  }
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
