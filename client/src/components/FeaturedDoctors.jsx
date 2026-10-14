@@ -19,6 +19,10 @@ const getToday = () => {
   return localDate.toISOString().slice(0, 10);
 };
 
+const displayDoctorName = (doctor) => doctor.isDemo
+  ? doctor.fullName.replace(/^Dr\. Demo /, "Dr. ")
+  : doctor.fullName;
+
 function DoctorCard({ doctor, onBook }) {
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState(null);
@@ -58,17 +62,17 @@ function DoctorCard({ doctor, onBook }) {
         <div className="d-flex align-items-start gap-3 mb-3">
           <div className="doctor-directory-avatar" aria-hidden="true">✚</div>
           <div className="flex-grow-1">
-            <h3 className="h5 fw-bold mb-1">{doctor.fullName}</h3>
+            <h3 className="h5 fw-bold mb-1">{displayDoctorName(doctor)}</h3>
             <div className="doctor-directory-specialty">{doctor.specialization}</div>
             {doctor.isDemo && (
-              <span className="doctor-directory-demo-tag">Fictional demo profile</span>
+              <span className="doctor-directory-demo-tag">Fictional training profile</span>
             )}
           </div>
         </div>
 
         <div className="d-flex flex-wrap gap-3 small mb-3">
-          <span><strong>Experience:</strong> {doctor.experience}</span>
-          <span><strong>{doctor.isDemo ? "Sample fee:" : "Fee:"}</strong> ₹{doctor.fees}</span>
+          <span><strong>Experience:</strong> {String(doctor.experience).replace(/ \(fictional\)$/i, "")}</span>
+          <span><strong>Consultation fee:</strong> ₹{doctor.fees}</span>
         </div>
 
         <div className="doctor-directory-schedule mb-3">
@@ -145,7 +149,7 @@ function DoctorCard({ doctor, onBook }) {
           </button>
           {doctor.isDemo && (
             <small className="text-secondary d-block mt-2">
-              Training/demo appointments only. Do not submit real patient information.
+              Training appointments only. Do not submit real patient information.
             </small>
           )}
           {!isAuthenticated && (
@@ -194,7 +198,7 @@ function FeaturedDoctors() {
   const filteredDoctors = useMemo(() => doctors.filter((doctor) => (
     (specialization === "all" || doctor.specialization === specialization) &&
     (!query.trim() ||
-      `${doctor.fullName} ${doctor.specialization}`.toLowerCase().includes(query.trim().toLowerCase()))
+      `${displayDoctorName(doctor)} ${doctor.specialization}`.toLowerCase().includes(query.trim().toLowerCase()))
   )), [doctors, specialization, query]);
 
   const handleBookAppointment = (doctorId) => {
@@ -223,7 +227,7 @@ function FeaturedDoctors() {
         <>
           {doctors.some((doctor) => doctor.isDemo) && (
             <div className="doctor-directory-notice mb-4" role="note">
-              <strong>Demo booking environment.</strong> Profiles marked “Fictional demo profile” do
+              <strong>Training booking environment.</strong> Profiles marked “Fictional training profile” do
               not represent real licensed clinicians or clinics. Schedule and booking data are
               for software testing only. Please do not enter real patient information.
             </div>
