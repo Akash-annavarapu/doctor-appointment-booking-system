@@ -259,11 +259,11 @@ describe(
         ).toBeInTheDocument();
 
         expect(
-          screen.getByText("Cardiology")
+          screen.getAllByText("Cardiology")[0]
         ).toBeInTheDocument();
 
         expect(
-          screen.getByText("Dermatology")
+          screen.getAllByText("Dermatology")[0]
         ).toBeInTheDocument();
 
         expect(API.get).toHaveBeenCalledWith(
