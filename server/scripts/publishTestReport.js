@@ -59,6 +59,9 @@ async function publish() {
   if (!file) throw new Error("Provide a Jest/Vitest JSON results file.");
   const results = JSON.parse(await fs.readFile(file, "utf8"));
   const report = toTestPilotReport(results, suite);
+  if (report.summary.total === 0 || Number(results.numFailedTestSuites || 0) > 0 && report.summary.failed === 0) {
+    throw new Error("Runner output has no usable test outcomes or contains an unreported suite failure.");
+  }
   // No credentials means no reporting. CI can still test without production connectivity.
   if (!process.env.TESTPILOT_REPORT_API_URL || !process.env.REPORT_INGEST_TOKEN) {
     console.log("Report publishing disabled: set TESTPILOT_REPORT_API_URL and REPORT_INGEST_TOKEN.");
