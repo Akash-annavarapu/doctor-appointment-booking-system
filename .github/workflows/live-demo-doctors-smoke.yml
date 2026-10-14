@@ -1,0 +1,83 @@
+name: Live demo doctor smoke check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-read-only-check:
+    name: Verify live doctor catalog and availability
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check live read-only doctor endpoints
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const api = "https://doctor-appointment-booking-system-u1eq.onrender.com/api/v1";
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          let completed = false;
+
+          for (let attempt = 1; attempt <= 24; attempt += 1) {
+            try {
+              const response = await fetch(`${api}/doctor/all`, {
+                signal: AbortSignal.timeout(20000),
+              });
+              if (!response.ok) throw new Error(`doctor listing HTTP ${response.status}`);
+              const payload = await response.json();
+              if (!payload.success || !Array.isArray(payload.doctors)) {
+                throw new Error("Unexpected approved-doctors response");
+              }
+
+              const demo = payload.doctors.filter((doctor) => doctor.isDemo === true);
+              const specialties = new Set(demo.map((doctor) => doctor.specialization));
+              if (demo.length !== 15 || specialties.size !== 15) {
+                throw new Error(`Expected 15 demo doctors/specialties; got ${demo.length}/${specialties.size}`);
+              }
+
+              const doctor = demo.find((candidate) => candidate.weeklyAvailability?.some(
+                (day) => day.enabled && day.sessions?.length
+              ));
+              if (!doctor) throw new Error("No configured demo availability");
+
+              let date = null;
+              for (let plus = 3; plus <= 15; plus += 1) {
+                const day = new Date();
+                day.setUTCDate(day.getUTCDate() + plus);
+                const weekday = day.toLocaleDateString("en-US", {weekday:"long",timeZone:"UTC"});
+                if (doctor.weeklyAvailability.some((d) => d.day === weekday && d.enabled)) {
+                  date = day.toISOString().slice(0, 10);
+                  break;
+                }
+              }
+              if (!date) throw new Error("No enabled future demo day");
+
+              const url = new URL(`${api}/doctor/available-slots`);
+              url.searchParams.set("doctorId", doctor._id);
+              url.searchParams.set("appointmentDate", date);
+              const slotsResponse = await fetch(url, { signal: AbortSignal.timeout(20000) });
+              if (!slotsResponse.ok) throw new Error(`availability HTTP ${slotsResponse.status}`);
+              const slots = await slotsResponse.json();
+              if (!slots.success || !Array.isArray(slots.availableSlots) || slots.availableSlots.length === 0) {
+                throw new Error("No real available slots returned for the future demo day");
+              }
+              if (Object.hasOwn(slots, "bookedSlots") || Object.hasOwn(slots, "appointments")) {
+                throw new Error("Public endpoint leaked booked appointment information");
+              }
+
+              console.log(`PASS: ${demo.length} labeled demo doctors, ${specialties.size} specialties`);
+              console.log(`PASS: live slots endpoint returned ${slots.availableSlots.length} open slots on ${date}`);
+              completed = true;
+              break;
+            } catch (error) {
+              console.log(`Attempt ${attempt}: ${error.message}`);
+              if (attempt < 24) await sleep(10000);
+            }
+          }
+
+          if (!completed) process.exit(1);
+          NODE
