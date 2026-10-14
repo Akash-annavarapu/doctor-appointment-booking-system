@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   frontend:
@@ -27,7 +28,7 @@ jobs:
       - name: Test
         run: npm test -- --reporter=json --outputFile=/tmp/testpilot-frontend.json
       - name: Publish verified frontend run
-        if: always()
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
           REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
@@ -71,7 +72,7 @@ jobs:
       - name: Test in isolated test database
         run: npm test -- --json --outputFile=/tmp/testpilot-backend.json
       - name: Publish verified backend run
-        if: always()
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
           REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}

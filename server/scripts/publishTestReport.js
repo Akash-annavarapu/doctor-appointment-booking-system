@@ -53,32 +53,80 @@ function toTestPilotReport(results, suite) {
   };
 }
 
+async function getGitHubIdentity() {
+  if (!process.env.ACTIONS_ID_TOKEN_REQUEST_URL ||
+      !process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN) return null;
+
+  const url = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+  if (url.protocol !== "https:" || !url.hostname.endsWith(".actions.githubusercontent.com")) {
+    throw new Error("Invalid GitHub Actions OIDC request origin.");
+  }
+  url.searchParams.set("audience",
+    "testpilot-reporting:Akash-annavarapu/doctor-appointment-booking-system");
+  const reply = await fetch(url, {
+    headers: { Authorization: "Bearer " + process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN },
+    signal: AbortSignal.timeout(15000)
+  });
+  if (!reply.ok) throw new Error("Unable to obtain GitHub Actions identity.");
+  const body = await reply.json();
+  if (typeof body.value !== "string" || body.value.length > 16000) {
+    throw new Error("Invalid GitHub Actions identity response.");
+  }
+  return body.value;
+}
+
 async function publish() {
   const file = process.argv[2];
   const suite = process.argv[3] || "TestPilot-CI";
   if (!file) throw new Error("Provide a Jest/Vitest JSON results file.");
   const results = JSON.parse(await fs.readFile(file, "utf8"));
   const report = toTestPilotReport(results, suite);
-  if (report.summary.total === 0 || Number(results.numFailedTestSuites || 0) > 0 && report.summary.failed === 0) {
+  if (report.summary.total === 0 ||
+      (Number(results.numFailedTestSuites || 0) > 0 && report.summary.failed === 0)) {
     throw new Error("Runner output has no usable test outcomes or contains an unreported suite failure.");
   }
-  // No credentials means no reporting. CI can still test without production connectivity.
-  if (!process.env.TESTPILOT_REPORT_API_URL || !process.env.REPORT_INGEST_TOKEN) {
-    console.log("Report publishing disabled: set TESTPILOT_REPORT_API_URL and REPORT_INGEST_TOKEN.");
+
+  const isActions = Boolean(process.env.GITHUB_ACTIONS);
+  const base = process.env.TESTPILOT_REPORT_API_URL ||
+    (isActions ? "https://doctor-appointment-booking-system-u1eq.onrender.com" : "");
+  if (!base) {
+    console.log("Report publishing disabled: no API base URL.");
     return;
   }
-  const url = new URL(process.env.TESTPILOT_REPORT_API_URL);
+  const url = new URL(base);
   if (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname)) {
     throw new Error("Report API URL must use HTTPS outside localhost.");
   }
-  const response = await fetch(new URL("/api/reports/test-run", url), {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-TestPilot-Report-Token": process.env.REPORT_INGEST_TOKEN },
-    body: JSON.stringify(report),
-    signal: AbortSignal.timeout(15000)
-  });
-  if (!response.ok) throw new Error("Report ingestion returned HTTP " + response.status);
-  console.log("Published " + report.summary.total + " measured test results.");
+
+  const oidc = await getGitHubIdentity();
+  const shared = process.env.REPORT_INGEST_TOKEN;
+  if (!oidc && !shared) {
+    console.log("Report publishing disabled: no OIDC identity or ingestion token.");
+    return;
+  }
+  const headers = { "Content-Type": "application/json" };
+  if (oidc) headers.Authorization = "Bearer " + oidc;
+  else headers["X-TestPilot-Report-Token"] = shared;
+
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(new URL("/api/reports/test-run", url), {
+        method: "POST",
+        headers,
+        body: JSON.stringify(report),
+        signal: AbortSignal.timeout(45000)
+      });
+      if (response.ok) {
+        console.log("Published " + report.summary.total + " measured test results.");
+        return;
+      }
+      lastError = new Error("Report ingestion returned HTTP " + response.status);
+      if (![429, 502, 503, 504].includes(response.status)) break;
+    } catch (error) { lastError = error; }
+    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 7000 * (attempt + 1)));
+  }
+  throw lastError;
 }
 
 if (require.main === module) {
