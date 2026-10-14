@@ -3,6 +3,14 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import TestCases from "../TestCases";
 import { TEST_CASES } from "../../data/testCases";
+import API from "../../services/api";
+
+vi.mock("../../services/api", () => ({
+  default: {
+    defaults: { baseURL: "http://localhost:5000/api/v1" },
+    get: vi.fn().mockResolvedValue({ data: { runs: [] } }),
+  },
+}));
 
 vi.mock("../../components/Navbar", () => ({ default: () => <div>Navbar</div> }));
 vi.mock("../../components/Footer", () => ({ default: () => <div>Footer</div> }));
@@ -14,7 +22,10 @@ const renderLibrary = () => render(
 );
 
 describe("TestPilot 36-case design catalog", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.mocked(API.get).mockResolvedValue({ data: { runs: [] } });
+  });
 
   test("shows exactly the 36 documented unique case IDs with Not run status", () => {
     expect(TEST_CASES).toHaveLength(36);
