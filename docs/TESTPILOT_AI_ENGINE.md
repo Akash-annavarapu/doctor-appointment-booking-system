@@ -8,10 +8,10 @@
 The existing Express backend is CommonJS: server/services/aiTestGenerator.js is the executable implementation; server/services/aiTestGenerator.ts provides the requested TypeScript interface for typed consumers.
 
 ## Required deployment configuration
-1. Set OPENAI_API_KEY and optionally OPENAI_TEST_MODEL=gpt-4.1-mini on the Render backend. Neither value belongs in frontend environment variables.
-2. Generate a random REPORT_INGEST_TOKEN at least 24 characters long, set it on the Render backend and as a GitHub Actions repository secret of the same name.
-3. Set the GitHub Actions repository variable TESTPILOT_REPORT_API_URL to the real backend origin (https://your-backend.onrender.com, not frontend).
-4. Trigger GitHub Actions. It serializes measured Jest and Vitest JSON output, and sends it via the signed ingestion API. If publishing is not configured, the workflow skips publishing; it never produces pretend PASS results.
+1. On the Render backend choose AI_TEST_PROVIDER=anthropic and set ANTHROPIC_API_KEY (optional ANTHROPIC_TEST_MODEL=claude-sonnet-4-5), OR choose AI_TEST_PROVIDER=openai and set OPENAI_API_KEY. The default provider is Anthropic when an Anthropic key exists, otherwise OpenAI. A consumer Claude subscription is separate from Claude API billing. Never put keys in frontend variables or Git commits.
+2. Reporting is now secretless on trusted main-branch GitHub Actions runs via GitHub-signed OIDC identity. The server checks signature, audience, immutable repository ID, workflow reference, ref, event, expiry and matching run ID. No manual REPORT_INGEST_TOKEN is necessary for GitHub Actions. The old token is still supported for manual clients.
+3. GitHub CI reports to the known backend URL https://doctor-appointment-booking-system-u1eq.onrender.com by default. Optionally set GitHub Actions variable TESTPILOT_REPORT_API_URL to override the backend origin.
+4. Redeploy the Render backend from main, then trigger a main-branch CI run (a push or rerun) and inspect /test-cases. PR runs do not publish. Metrics are shown only from genuinely ingested runner output.
 
 ## Sample generation input (JSON)
     {
@@ -46,6 +46,6 @@ The total equals passed + failed + skipped; the testResults array includes only 
 - Syntax validation plus static scanning are NOT a security sandbox. Never eval, require, or automatically run model-generated code in the live server.
 - Run only human-reviewed, committed suites inside disposable isolated CI with synthetic patient data and a dedicated MongoDB database ending in _test; never production databases or PHI.
 - The e2e target denotes end-to-end API flows via Jest + Supertest. Browser E2E requires a separate Playwright/Cypress installation and staging data, not present here.
-- No API key or report token has been configured by this commit. Without them, generating tests and publishing analytics are disabled, as intended.
+- No provider API key is included in Git. Live LLM generation remains unavailable until the Render backend has a valid provider key. CI reporting uses short-lived GitHub OIDC identity, so it does not require a shared secret or paid API key.
 - Generated tests may be syntactically valid but behaviorally wrong until human reviewed and executed. Test code is not evidence of PASS.
 - Only use engine LLM-Generated for actual approved AI suites measured by CI; default is Static-CI. Public analytics intentionally omit errorLog.
