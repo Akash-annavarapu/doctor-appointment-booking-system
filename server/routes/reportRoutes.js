@@ -1,14 +1,28 @@
 const express = require("express");
 const crypto = require("node:crypto");
+const { verifyGitHubCI, CIAuthError } = require("../services/githubCiAuth");
 const TestRun = require("../models/TestRun");
 const { events, validateReport, publicReport, ReportError } = require("../services/testRunReporting");
 
 const router = express.Router();
 
-function authorizeReporter(req, res, next) {
+async function authorizeReporter(req, res, next) {
+  // Prefer signed identity from the trusted main-branch GitHub Actions job.
+  const authorization = req.get("Authorization") || "";
+  if (authorization.startsWith("Bearer ")) {
+    try {
+      await verifyGitHubCI(authorization.slice(7), req.body?.runId);
+      return next();
+    } catch (error) {
+      return res.status(error instanceof CIAuthError ? error.status : 401)
+        .json({ success: false, message: "Invalid CI identity." });
+    }
+  }
+
+  // Backwards compatibility for manually configured ingestion clients.
   const expected = process.env.REPORT_INGEST_TOKEN;
   if (!expected || expected.length < 24) {
-    return res.status(503).json({ success: false, message: "Report ingestion is not configured." });
+    return res.status(401).json({ success: false, message: "Signed CI identity or report token required." });
   }
   const incoming = req.get("X-TestPilot-Report-Token") || "";
   const a = Buffer.from(expected);
@@ -16,7 +30,7 @@ function authorizeReporter(req, res, next) {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     return res.status(401).json({ success: false, message: "Invalid report token." });
   }
-  next();
+  return next();
 }
 
 router.post("/test-run", authorizeReporter, async (req, res) => {
