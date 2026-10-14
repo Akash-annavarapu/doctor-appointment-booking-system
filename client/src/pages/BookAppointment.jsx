@@ -687,6 +687,14 @@ function BookAppointment() {
             </div>
 
 
+            {doctor.isDemo && (
+              <div className="alert alert-info" role="note">
+                <strong>Fictional demo doctor.</strong> This appointment is for
+                software testing, not real healthcare. Use only synthetic
+                information; do not upload real medical records.
+              </div>
+            )}
+
             <div className="row g-4">
 
 

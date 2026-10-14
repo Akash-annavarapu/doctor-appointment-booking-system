@@ -35,7 +35,7 @@ function Home() {
             </h1>
 
             <p className="lead mt-3">
-              Find approved doctors, book an available appointment, and keep track of your visits in one convenient place.
+              Browse medical specializations, inspect live appointment slots, and try the booking workflow in our healthcare demo.
             </p>
 
             <div className="mt-4 home-cta-actions">
@@ -87,12 +87,12 @@ function Home() {
                 <div className="home-feature-icon" aria-hidden="true">👨‍⚕️</div>
 
                 <h5 className="card-title">
-                  Verified Doctors
+                  Explore Specialties
                 </h5>
 
                 <p className="card-text">
-                  Consult experienced and verified doctors from different
-                  specialties.
+                  Browse real approved profiles and clearly labeled demo specialists
+                  by their configured weekly schedules.
                 </p>
               </div>
             </div>

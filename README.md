@@ -1,3 +1,16 @@
+## Demo doctors and booking availability
+
+The TestPilot home page can display **15 clearly labeled fictional demo doctors** spanning 15 different specializations. These are educational records, **not real healthcare providers**. Their weekly timetables are synthetic. Visitors can check **real-time remaining slots** for a selected date via a public, read-only endpoint: `GET /api/v1/doctor/available-slots?doctorId=...&appointmentDate=YYYY-MM-DD`. Only open slot times are returned; no patient information or booked appointment records are returned. Real booking still requires authentication and uses the existing `/appointment/book` validations.
+
+- UI: `client/src/components/FeaturedDoctors.jsx`.
+- Data definitions: `server/scripts/demoDoctorData.js`.
+- Idempotent, explicit one-off seed script: `server/scripts/seedDemoDoctors.js` with `SEED_DEMO_DOCTORS=true` and an authorized `MONGO_URI`. It **does not run on startup**, never overwrites real doctors, and refuses to create/upgrade privileged accounts.
+- Database: 15 demo `User` accounts with random, inaccessible passwords and 15 `Doctor` records with `isDemo:true`. Existing pending doctor applications remain untouched.
+- Use only synthetic patient accounts and documents to test bookings; **do not use real patient or medical information**. These doctors cannot provide medical care.
+
+
+---
+
 # TestPilot — Deployed Healthcare App & Test-Design Milestones
 
 **TestPilot** is an academic AI-assisted test-case-generation *design project* built around this existing open-source doctor appointment booking application, which is the **system under test**. Its current UI is customized for the project; the healthcare booking functionality remains the existing application.

@@ -602,3 +602,73 @@ p { line-height: 1.75; }
   .testpilot-filters, .testpilot-case { padding: 1.1rem; }
   .testpilot-stat-value { font-size: 1.6rem; }
 }
+
+
+/* Searchable doctor profiles and public availability */
+.doctor-directory h2 { color: #123c68 !important; }
+.doctor-directory .form-label { color: #234d71; font-size: 0.9rem; }
+.doctor-directory-card {
+  background: #fff;
+  border: 1px solid #e3edf6 !important;
+  box-shadow: 0 7px 24px rgba(17, 62, 100, 0.07) !important;
+}
+.doctor-directory-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  color: #1972ac;
+  border-radius: 16px;
+  background: #e6f5f9;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+.doctor-directory-card h3 { color: #173e64; overflow-wrap: anywhere; }
+.doctor-directory-specialty { font-size: 0.92rem; color: #08786e; font-weight: 700; }
+.doctor-directory-demo-tag {
+  display: inline-block;
+  color: #604b13;
+  border: 1px solid #eedfa4;
+  background: #fff7d8;
+  padding: 0.2rem 0.48rem;
+  border-radius: 999px;
+  margin-top: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.doctor-directory-notice {
+  padding: 1rem 1.2rem;
+  border: 1px solid #b9dcdf;
+  background: #eaf8f9;
+  color: #205667;
+  border-radius: 1rem;
+  font-size: 0.89rem;
+}
+.doctor-directory-schedule {
+  padding: 1rem;
+  border-radius: 0.85rem;
+  background: #f5f9fe;
+  border: 1px solid #e2edfa;
+  color: #3d5369;
+}
+.doctor-directory-days { font-size: 0.79rem; }
+.doctor-directory-days li { padding: 0.25rem 0; border-bottom: 1px solid #e6eef6; }
+.doctor-directory-days li:last-child { border-bottom: none; }
+.doctor-directory-date { flex: 1 1 145px; min-width: 0; }
+.doctor-directory-availability {
+  margin-top: 0.65rem;
+  border-radius: 0.85rem;
+  background: #effaf7;
+  padding: 0.8rem;
+  border: 1px solid #cbece1;
+}
+.doctor-directory-slot {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #afe0d0;
+  border-radius: 0.45rem;
+  background: #fff;
+  font-size: 0.78rem;
+  color: #096c61;
+  font-weight: 600;
+}

@@ -10,6 +10,8 @@ const {
   getAllDoctorsController,
 } = require("../controllers/doctorController");
 
+const { getPublicAvailableSlotsController } = require("../controllers/appointmentController");
+
 const router = express.Router();
 
 // Apply / Reapply as Doctor
@@ -38,6 +40,9 @@ router.get(
   "/all",
   getAllDoctorsController
 );
+
+// Public, read-only availability lookup; does not return patient data.
+router.get("/available-slots", getPublicAvailableSlotsController);
 
 // Get one approved doctor by ID
 router.get(

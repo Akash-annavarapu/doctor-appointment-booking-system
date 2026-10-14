@@ -36,6 +36,7 @@ const PUBLIC_DOCTOR_FIELDS = [
   "address",
   "weeklyAvailability",
   "slotDuration",
+  "isDemo",
 ].join(" ");
 
 

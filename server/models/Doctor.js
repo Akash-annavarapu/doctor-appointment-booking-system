@@ -119,6 +119,16 @@ const doctorSchema = new mongoose.Schema(
 
 
     // ==================================
+    // Fictional sample profiles for this academic demo.
+    // Not real clinicians or verified credentials.
+    // ==================================
+    isDemo: {
+      type: Boolean,
+      default: false,
+    },
+
+
+    // ==================================
     // Legacy field
     //
     // Keep temporarily so old doctor

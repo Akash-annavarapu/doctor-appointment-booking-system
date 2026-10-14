@@ -1210,10 +1210,56 @@ const getMedicalDocumentController =
   };
 
 
+// Public read-only availability: never expose booked appointment details.
+const getPublicAvailableSlotsController = async (req, res) => {
+  try {
+    const { doctorId, appointmentDate } = req.query;
+
+    if (!doctorId || !appointmentDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor and appointment date are required.",
+      });
+    }
+
+    if (!mongoose.isObjectIdOrHexString(doctorId)) {
+      return res.status(400).json({ success: false, message: "Invalid doctor ID." });
+    }
+
+    const doctor = await Doctor.findOne({ _id: doctorId, status: "approved" });
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: "Doctor not found." });
+    }
+
+    const result = await getAvailableSlots(doctor, appointmentDate);
+
+    if (!result.valid) {
+      return res.status(400).json({ success: false, message: result.message });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      dayName: result.dayName,
+      blocked: Boolean(result.blocked),
+      slotDuration: doctor.slotDuration,
+      availableSlots: result.availableSlots || [],
+    });
+  } catch (error) {
+    console.error("Public availability error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch available slots.",
+    });
+  }
+};
+
+
 // ======================================
 // Exports
 // ======================================
 module.exports = {
+  getPublicAvailableSlotsController,
   getAvailableSlotsController,
   bookAppointmentController,
   getUserAppointmentsController,
