@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import API from "../services/api";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import {
@@ -13,6 +14,45 @@ function TestCases() {
   const [useCase, setUseCase] = useState("all");
   const [priority, setPriority] = useState("all");
   const [expandedId, setExpandedId] = useState(null);
+  const [runs, setRuns] = useState([]);
+  const [reportError, setReportError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const load = () => API.get("/reports/recent?limit=10")
+      .then(({ data }) => {
+        if (active && Array.isArray(data.runs)) {
+          setRuns(data.runs);
+          setReportError(false);
+        }
+      })
+      .catch(() => { if (active) setReportError(true); });
+
+    load();
+    const timer = setInterval(load, 30000);
+    // An SSE event triggers a fresh DB read. Polling remains the cross-instance fallback.
+    const base = (API.defaults.baseURL || "").replace(/\/api\/v1\/?$/, "");
+    const feed = typeof EventSource !== "undefined"
+      ? new EventSource(base + "/api/reports/stream") : null;
+    if (feed) feed.addEventListener("report", load);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      if (feed) feed.close();
+    };
+  }, []);
+
+  const latestRun = runs[0] || null;
+  const resultById = useMemo(() => {
+    const lookup = new Map();
+    for (const run of runs) {
+      for (const result of run.testResults || []) {
+        if (!lookup.has(result.id)) lookup.set(result.id, result);
+      }
+    }
+    return lookup;
+  }, [runs]);
+
 
   const visibleCases = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -82,6 +122,47 @@ function TestCases() {
           </div>
         </div>
 
+        <section className="mb-4" aria-label="Execution analytics">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h2 className="h5 mb-0">Verified execution analytics</h2>
+            <span className="small text-secondary">Read-only · refreshes automatically</span>
+          </div>
+          {latestRun ? (
+            <>
+              <p className="small text-secondary">
+                Latest: {latestRun.suite} ({latestRun.engine}) ·
+                {" "}{new Date(latestRun.timestamp).toLocaleString()} · Run {latestRun.runId}
+              </p>
+              <div className="row g-3" aria-label="Latest test run metrics">
+                {[
+                  ["Executed", latestRun.summary.total],
+                  ["Passed", latestRun.summary.passed],
+                  ["Failed", latestRun.summary.failed],
+                  ["Skipped", latestRun.summary.skipped],
+                  ["Duration (ms)", latestRun.summary.durationMs],
+                ].map(([label, count]) => (
+                  <div className="col-6 col-md" key={label}>
+                    <div className="testpilot-stat">
+                      <div className="testpilot-stat-value">{count}</div>
+                      <div className="testpilot-stat-label">{label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="small text-secondary mt-2">
+                Case statuses below are linked only when an ingested CI result uses the same TP ID.
+                Generated candidates remain Not run until separately executed and reported.
+              </p>
+            </>
+          ) : (
+            <p className="text-secondary">
+              {reportError
+                ? "Execution reporting is currently unavailable; no results have been inferred."
+                : "No verified test runs received yet. The 36 designed cases are not execution evidence."}
+            </p>
+          )}
+        </section>
+
         <section className="testpilot-filters mb-4" aria-label="Test case filters">
           <div className="row g-3 align-items-end">
             <div className="col-md-6">
@@ -150,7 +231,7 @@ function TestCases() {
             Showing {visibleCases.length} of {TEST_CASES.length} cases
           </h2>
           <span className="text-secondary small">
-            Read-only catalog · all test results currently Not run
+            Design catalog · statuses require matched CI evidence
           </span>
         </div>
 
@@ -166,12 +247,17 @@ function TestCases() {
           <div className="row g-3">
             {visibleCases.map((item) => {
               const isExpanded = expandedId === item.id;
+              const execution = resultById.get(item.id);
+              const executionLabel = execution?.status || "Not run";
               return (
                 <div className="col-12 col-xl-6" key={item.id}>
                   <article className="testpilot-case h-100">
                     <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                       <span className="testpilot-id">{item.id}</span>
-                      <span className="testpilot-not-run">Not run</span>
+                      <span className={executionLabel === "PASS" ? "badge bg-success" :
+                        executionLabel === "FAIL" ? "badge bg-danger" : "testpilot-not-run"}>
+                        {executionLabel}
+                      </span>
                     </div>
                     <h3 className="h6 fw-bold mb-3">{item.scenario}</h3>
                     <div className="d-flex flex-wrap gap-2 mb-3">
@@ -211,8 +297,7 @@ function TestCases() {
           >
             View the test-case matrix on GitHub
           </a>.
-          Automated tests in the source repository run separately; they do not
-          update this static catalog with results.
+          CI reports are displayed separately; only matching case IDs receive verified execution labels.
         </p>
       </main>
       <Footer />
