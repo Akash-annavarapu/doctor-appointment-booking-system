@@ -60,6 +60,26 @@ describe("TestPilot AI generator contract", () => {
       .rejects.toThrow(/not claim/);
   });
 
+
+  test("generates a Claude candidate using Anthropic structured JSON output", async () => {
+    const fetchImpl = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        content: [{ type: "text", text: JSON.stringify(candidate) }]
+      })
+    }));
+    const result = await generateTests(metadata, {
+      provider: "anthropic", apiKey: "synthetic-anthropic-key", fetchImpl
+    });
+    expect(result.executionStatus).toBe("NOT_RUN");
+    expect(fetchImpl.mock.calls[0][0]).toBe("https://api.anthropic.com/v1/messages");
+    const request = fetchImpl.mock.calls[0][1];
+    expect(request.headers["x-api-key"]).toBe("synthetic-anthropic-key");
+    const body = JSON.parse(request.body);
+    expect(body.output_config.format).toMatchObject({ type: "json_schema" });
+    expect(body.messages[0].content).toContain("/api/v1/appointment/book");
+  });
+
   test("reports provider failures without exposing keys", async () => {
     await expect(generateTests(metadata, {
       apiKey: "private-key",
