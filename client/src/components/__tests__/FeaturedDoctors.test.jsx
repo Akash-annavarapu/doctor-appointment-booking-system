@@ -175,7 +175,8 @@ describe(
         renderFeaturedDoctors();
         expect(await screen.findByText("Dr. Aarya")).toBeInTheDocument();
         expect(screen.getByText("Monday")).toBeInTheDocument();
-        expect(screen.getByText("Fictional training profile")).toBeInTheDocument();
+        expect(screen.queryByText("Fictional training profile")).not.toBeInTheDocument();
+        expect(screen.getByText(/These fictional doctor profiles/i)).toBeInTheDocument();
         expect(screen.getByText(/training appointments only/i)).toBeInTheDocument();
         expect(screen.getByText("30-minute appointments")).toBeInTheDocument();
       }
