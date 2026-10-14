@@ -70,3 +70,12 @@ CI does **not** send requests to the production backend or operate on live patie
 ### Academic demo
 
 Show the live dashboard and the GitHub test suites. Explain: **use cases → designed test cases → implemented automated checks → execution logs**. The LLM generation workflow remains a proposed later phase.
+
+
+## Doctor specialization demo (next incremental feature)
+
+Fifteen fictional demo clinicians cover these distinct specializations: General Medicine, Cardiology, Dermatology, Pediatrics, Orthopedics, Neurology, ENT, Gynecology, Ophthalmology, Psychiatry, Gastroenterology, Pulmonology, Endocrinology, Urology, Dentistry. Their `isDemo` flag and disclaimers distinguish them from real clinicians.
+
+The homepage's doctor section displays configured weekly sessions and includes a specialization/search filter. A **public read-only** endpoint `GET /api/v1/doctor/available-slots?doctorId=...&appointmentDate=...` calculates remaining slots while withholding patient and booked-appointment details. Booking itself still requires authentication via `POST /api/v1/appointment/book`. Do not use real patient information in this environment.
+
+Repository fixture: `server/scripts/demoDoctorData.js`. Idempotent one-time seed script: `server/scripts/seedDemoDoctors.js`. The two original pending doctor applications are not modified by this feature. CI includes doctor-directory presentation tests and public availability tests. Passing tests are **not** a substitute for manually verifying a test-patient appointment end to end.

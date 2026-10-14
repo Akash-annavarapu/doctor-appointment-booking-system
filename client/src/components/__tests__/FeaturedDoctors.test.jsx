@@ -150,6 +150,91 @@ describe(
 
 
     test(
+      "renders fictional demo specialist and scheduled days",
+      async () => {
+        API.get.mockResolvedValue({
+          data: {
+            success: true,
+            doctors: [{
+              _id: "demo-1",
+              isDemo: true,
+              fullName: "Dr. Demo Aarya",
+              specialization: "General Medicine",
+              experience: "6 years (fictional)",
+              fees: 320,
+              slotDuration: 30,
+              weeklyAvailability: [{
+                day: "Monday",
+                enabled: true,
+                sessions: [{ startTime: "09:00", endTime: "12:00" }],
+              }],
+            }],
+          },
+        });
+
+        renderFeaturedDoctors();
+        expect(await screen.findByText("Dr. Demo Aarya")).toBeInTheDocument();
+        expect(screen.getByText("Monday")).toBeInTheDocument();
+        expect(screen.getByText("Fictional demo profile")).toBeInTheDocument();
+        expect(screen.getByText(/training\/demo appointments only/i)).toBeInTheDocument();
+        expect(screen.getByText("30-minute appointments")).toBeInTheDocument();
+      }
+    );
+
+    test(
+      "filters 2 doctors by specialization and restores all",
+      async () => {
+        API.get.mockResolvedValue({
+          data: { success: true, doctors },
+        });
+        renderFeaturedDoctors();
+        await screen.findByText("Dr. Anjali Rao");
+
+        fireEvent.change(screen.getByLabelText("Specialization"), {
+          target: { value: "Cardiology" },
+        });
+
+        expect(screen.getByText("Dr. Anjali Rao")).toBeInTheDocument();
+        expect(screen.queryByText("Dr. Ravi Kumar")).not.toBeInTheDocument();
+        expect(screen.getByText("Showing 1 of 2 doctor profiles")).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText("Specialization"), {
+          target: { value: "all" },
+        });
+        expect(screen.getByText("Showing 2 of 2 doctor profiles")).toBeInTheDocument();
+      }
+    );
+
+    test(
+      "checks open slots through public read-only backend endpoint",
+      async () => {
+        API.get.mockImplementation(async (path) => {
+          if (path === "/doctor/all") {
+            return { data: { success: true, doctors: [doctors[0]] } };
+          }
+          if (path === "/doctor/available-slots") {
+            return { data: { success: true, availableSlots: ["09:00", "09:30"] } };
+          }
+          throw new Error("Unexpected API request");
+        });
+
+        renderFeaturedDoctors();
+        await screen.findByText("Dr. Anjali Rao");
+        fireEvent.change(
+          screen.getByLabelText("Appointment date for Dr. Anjali Rao"),
+          { target: { value: "2030-06-03" } }
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Check slots" }));
+
+        await waitFor(() => expect(API.get).toHaveBeenCalledWith(
+          "/doctor/available-slots",
+          { params: { doctorId: "doctor-1", appointmentDate: "2030-06-03" } }
+        ));
+        expect(await screen.findByText("2 open slots on 2030-06-03")).toBeInTheDocument();
+      }
+    );
+
+    test(
       "loads and displays doctors from the API",
       async () => {
         API.get.mockResolvedValue({
