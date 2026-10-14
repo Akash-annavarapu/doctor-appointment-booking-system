@@ -419,7 +419,7 @@ describe(
 
 
     test(
-      "returns no slots on a blocked date",
+      "TP-021: returns no slots on a blocked date",
       async () => {
         const response =
           await request(app)
@@ -492,7 +492,7 @@ describe(
     // Booking
     // ==================================
     test(
-      "books a valid available appointment",
+      "TP-023: books a valid available appointment",
       async () => {
         const response =
           await request(app)
@@ -604,7 +604,7 @@ describe(
 
 
     test(
-      "rejects booking outside the doctor schedule",
+      "TP-024: rejects booking outside the doctor schedule",
       async () => {
         const response =
           await request(app)
@@ -641,7 +641,7 @@ describe(
 
 
     test(
-      "rejects booking an already occupied slot",
+      "TP-026: rejects booking an already occupied slot",
       async () => {
         const bookingData = {
           doctorId:
@@ -696,7 +696,7 @@ describe(
 
 
     test(
-      "prevents concurrent double booking of the same slot",
+      "TP-025: prevents concurrent double booking of the same slot",
       async () => {
         const bookingData = {
           doctorId:
@@ -813,7 +813,7 @@ describe(
     // Appointment Access
     // ==================================
     test(
-      "returns only the logged-in patient's appointments",
+      "TP-029: returns only the logged-in patient's appointments",
       async () => {
         await Appointment.create([
           {
@@ -891,7 +891,7 @@ describe(
 
 
     test(
-      "returns only appointments belonging to the logged-in doctor",
+      "TP-030: returns only appointments belonging to the logged-in doctor",
       async () => {
         await Appointment.create([
           {
@@ -945,7 +945,7 @@ describe(
     // Status Transitions
     // ==================================
     test(
-      "allows Pending to Approved and Approved to Completed",
+      "TP-031: allows Pending to Approved and Approved to Completed",
       async () => {
         const appointment =
           await Appointment.create({
@@ -1050,7 +1050,7 @@ describe(
 
 
     test(
-      "prevents another doctor from updating an appointment",
+      "TP-033: prevents another doctor from updating an appointment",
       async () => {
         const appointment =
           await Appointment.create({
@@ -1146,7 +1146,7 @@ describe(
     );
 
     test(
-      "rejects unsupported medical document types",
+      "TP-027: rejects unsupported medical document types",
       async () => {
         const response =
           await request(app)
@@ -1199,7 +1199,7 @@ describe(
     );
 
     test(
-      "rejects medical documents larger than 5 MB",
+      "TP-028: rejects medical documents larger than 5 MB",
       async () => {
         const response =
           await request(app)
@@ -1366,7 +1366,7 @@ describe(
 
 
     test(
-      "prevents another doctor from accessing a medical document",
+      "TP-034: prevents another doctor from accessing a medical document",
       async () => {
         const fileName =
           "private-document.pdf";

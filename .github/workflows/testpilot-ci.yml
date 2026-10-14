@@ -25,7 +25,16 @@ jobs:
       - name: Install
         run: npm ci
       - name: Test
-        run: npm test
+        run: npm test -- --reporter=json --outputFile=/tmp/testpilot-frontend.json
+      - name: Publish verified frontend run
+        if: always()
+        env:
+          TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
+          REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
+        run: |
+          if [ -f /tmp/testpilot-frontend.json ]; then
+            node ../server/scripts/publishTestReport.js /tmp/testpilot-frontend.json frontend-vitest
+          fi
       - name: Build
         run: npm run build
 
@@ -60,4 +69,13 @@ jobs:
       - name: Install
         run: npm ci
       - name: Test in isolated test database
-        run: npm test
+        run: npm test -- --json --outputFile=/tmp/testpilot-backend.json
+      - name: Publish verified backend run
+        if: always()
+        env:
+          TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
+          REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
+        run: |
+          if [ -f /tmp/testpilot-backend.json ]; then
+            node scripts/publishTestReport.js /tmp/testpilot-backend.json backend-jest
+          fi

@@ -1,8 +1,16 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import TestCases from "../TestCases";
 import { TEST_CASES } from "../../data/testCases";
+import API from "../../services/api";
+
+vi.mock("../../services/api", () => ({
+  default: {
+    defaults: { baseURL: "http://localhost:5000/api/v1" },
+    get: vi.fn().mockResolvedValue({ data: { runs: [] } }),
+  },
+}));
 
 vi.mock("../../components/Navbar", () => ({ default: () => <div>Navbar</div> }));
 vi.mock("../../components/Footer", () => ({ default: () => <div>Footer</div> }));
@@ -14,7 +22,10 @@ const renderLibrary = () => render(
 );
 
 describe("TestPilot 36-case design catalog", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.mocked(API.get).mockResolvedValue({ data: { runs: [] } });
+  });
 
   test("shows exactly the 36 documented unique case IDs with Not run status", () => {
     expect(TEST_CASES).toHaveLength(36);
@@ -73,6 +84,33 @@ describe("TestPilot 36-case design catalog", () => {
     expect(screen.getByRole("heading", { name: "No matching test cases" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show all cases" }));
     expect(screen.getByRole("heading", { name: "Showing 36 of 36 cases" })).toBeInTheDocument();
+  });
+
+
+  test("uses only matched, ingested CI results for case execution status", async () => {
+    vi.mocked(API.get).mockResolvedValue({
+      data: {
+        runs: [{
+          runId: "ci:12345:backend",
+          timestamp: "2026-10-14T12:00:00.000Z",
+          suite: "backend-jest",
+          engine: "Static-CI",
+          summary: { total: 2, passed: 1, failed: 0, skipped: 1, durationMs: 50 },
+          testResults: [{
+            id: "TP-025", title: "Race condition",
+            category: "Edge Case", status: "PASS", executionTime: 50, errorLog: null,
+          }],
+        }],
+      },
+    });
+
+    renderLibrary();
+    expect(await screen.findByText("Verified execution analytics")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/backend-jest/)).toBeInTheDocument();
+      expect(screen.getByText("PASS")).toBeInTheDocument();
+    });
+    expect(screen.getAllByText("Not run")).toHaveLength(35);
   });
 
   test("all cases retain use-case, priority, expected result and trace reference", () => {
