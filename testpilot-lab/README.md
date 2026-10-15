@@ -1,5 +1,9 @@
 # TestPilot Lab — standalone testing application
 
+**Deployed independently on Render:** https://testpilot-lab.onrender.com/  
+**Render workspace:** My Workspace; service testpilot-lab; free plan; branch main; auto-deployment enabled.
+
+
 **A second application** distinct from the existing deployed healthcare application. Its Node.js server hosts its own UI and API without external NPM dependencies.
 
 ## How it fulfills Kavi sir's Step 2
@@ -22,9 +26,9 @@ Requires Node.js 22 or newer. No dependency installation needed.
 
 Open http://localhost:5050/.
 
-## Independent Render deployment
+## Render deployment configuration
 
-Create a NEW Render Web Service pointing at this same GitHub repository, without changing the existing healthcare frontend/backend services.
+This separate service has been created on Render, pointing at the same GitHub repository, without changing the existing healthcare frontend/backend services.
 
 - Root Directory: testpilot-lab
 - Runtime: Node.js

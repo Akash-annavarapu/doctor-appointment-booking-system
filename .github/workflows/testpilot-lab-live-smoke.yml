@@ -1,0 +1,96 @@
+name: TestPilot Lab live deployment smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'testpilot-lab/**'
+      - '.github/workflows/testpilot-lab-live-smoke.yml'
+      - 'README.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-lab-check:
+    name: Verify deployed Lab without modifying healthcare data
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Verify public Lab and live read-only workflow
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const lab = 'https://testpilot-lab.onrender.com';
+          const sut = 'https://doctor-appointment-frontend-9dbs.onrender.com/';
+          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+          async function request(path, body) {
+            const response = await fetch(lab + path, {
+              method: body ? 'POST' : 'GET',
+              headers: body ? { 'content-type': 'application/json' } : undefined,
+              body: body ? JSON.stringify(body) : undefined,
+              signal: AbortSignal.timeout(60000)
+            });
+            if (!response.ok) throw new Error(path + ': HTTP ' + response.status);
+            return path === '/' ? response.text() : response.json();
+          }
+          async function verify(label, fn) {
+            let last;
+            for (let attempt = 1; attempt <= 18; attempt++) {
+              try {
+                const detail = await fn();
+                console.log('PASS ' + label + ': ' + detail);
+                return;
+              } catch (error) {
+                last = error;
+                console.log('Attempt ' + attempt + ' of ' + label + ': ' + error.message);
+                if (attempt < 18) await sleep(8000);
+              }
+            }
+            throw Error('FAIL ' + label + ': ' + last.message);
+          }
+          await verify('Lab health', async () => {
+            const h = await request('/healthz');
+            if (!h.ok || h.service !== 'testpilot-lab') throw Error('Invalid health response');
+            return 'active service';
+          });
+          await verify('Lab homepage', async () => {
+            const page = await request('/');
+            if (!page.includes('TestPilot') || !page.includes('User story')) throw Error('Missing Lab UI');
+            return 'independent testing UI served';
+          });
+          await verify('25 source-grounded user stories', async () => {
+            const data = await request('/api/stories');
+            if (data.count !== 25 || data.stories.length !== 25 ||
+                new Set(data.stories.map(story => story.useCase)).size !== 15) {
+              throw Error('Story count / use case map mismatch');
+            }
+            return '25 stories mapped to 15 use cases';
+          });
+          await verify('approved live GET test mapping', async () => {
+            const data = await request('/api/probes?storyId=US-005');
+            if (!Array.isArray(data.checks) || !data.checks.some(check => check.method === 'GET')) {
+              throw Error('No documented safe GET probe');
+            }
+            return 'US-005 has source-approved GET assertions';
+          });
+          await verify('read-only SUT inspection', async () => {
+            const response = await request('/api/inspect', { targetUrl: sut });
+            if (!response.inspection?.page?.reactRootDetected ||
+                !Number.isInteger(response.inspection.publicDoctorCatalog?.approvedCount)) {
+              throw Error('Public healthcare inspection incomplete');
+            }
+            return 'public healthcare catalog and React mount verified';
+          });
+          await verify('measured live doctor probe', async () => {
+            const response = await request('/api/execute', { targetUrl: sut, storyId: 'US-005' });
+            const run = response.run;
+            if (!run || run.summary.total !== 1 || run.summary.passed !== 1 ||
+                run.generatedTestsExecuted !== false ||
+                run.results[0]?.scope !== 'VERIFIED_READ_ONLY_PROBE') {
+              throw Error('Doctor GET assertion did not return measured PASS');
+            }
+            return 'real read-only PASS, no generated code executed';
+          });
+          NODE
