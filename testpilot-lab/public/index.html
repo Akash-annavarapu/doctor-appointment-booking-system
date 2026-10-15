@@ -78,6 +78,15 @@
       </div>
     </section>
 
+    <section class="panel ci-panel" aria-labelledby="ci-heading">
+      <div class="panel-heading"><span class="step-number">04</span><div><p class="kicker">AUTOMATED TEST EVIDENCE</p><h2 id="ci-heading">Latest measured CI runs</h2></div></div>
+      <div class="execution-body">
+        <p class="lead-small">View actual Jest and Vitest results already executed by GitHub Actions against an isolated test database. This is independent evidence from the approved static test suites, not execution of unreviewed AI-generated code.</p>
+        <button type="button" id="load-ci-button" class="ghost">↻ Load verified CI reports</button>
+        <div id="ci-message" class="message" aria-live="polite" role="status"></div>
+        <div id="ci-results" class="run-results"></div>
+      </div>
+    </section>
     <section class="footnote">
       <h2>Two applications, one testing objective.</h2>
       <p><strong>System under test:</strong> the original GitHub doctor appointment booking application on Render. <strong>Testing application:</strong> this independent TestPilot Lab. It collects the deployed URL and user story, inspects public app evidence, and generates candidate cases. This lab supports limited measured read-only checks now; full execution of generated test cases against an isolated test environment remains the next milestone.</p>
