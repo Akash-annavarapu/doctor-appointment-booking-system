@@ -70,3 +70,17 @@ A separate **Latest measured CI runs** panel reads GET /api/ci-results, which pr
 - GET /api/ci-results — latest measured static CI report summaries.
 
 Generated AI cases remain review-required, NOT_RUN. Do not combine a passing probe with an unrelated generated candidate as a claim of passing the entire generated case.
+
+## Approved execution of LLM-generated cases (limited scope)
+
+With private OPENAI_API_KEY and LAB_ACCESS_CODE configured, /api/generate returns 4–8 AI-generated cases. The model must assign each case a probeId: an applicable ID from that story's fixed, audited, read-only GET checks, or NONE where the scenario cannot be safely executed against production.
+
+- The Lab validates every proposed probeId against the selected story. For bound checks, the app supplies the source-reviewed expected assertion instead of accepting a model-invented expectation.
+- Each generation response includes a 30-minute, server-signed receipt binding the exact story, allowed healthcare URL and generated case contents. Tokens expire and are invalidated by restart.
+- Users explicitly approve cases using UI checkboxes. POST /api/execute-generated requires LAB_ACCESS_CODE, the original receipt, all unchanged generated cases and selected AI case IDs.
+- The executor only runs allowlisted GET assertions. It never evaluates LLM JavaScript, sends credentials, creates appointments, changes doctor records or performs writes on the public healthcare site.
+- Each bound AI case gets measured PASS/FAIL for the associated read-only assertion only; unsupported AI cases are SKIPPED. The result does NOT establish that the entire generated narrative scenario passed.
+
+POST /api/execute-generated accepts targetUrl, storyId, accessCode, receipt, the unchanged cases array, and selectedIds such as ['AI-001']. The generation receipt is not a substitute for authentication.
+
+**Still needed for full milestone 3:** A disposable staging deployment with synthetic patient/doctor/admin fixtures, dedicated test MongoDB, reviewed test oracles and a runner for state-changing or UI workflows. The production deployment must not be used for these tests. Live LLM generation also still requires the user's valid paid OpenAI API key configured in Render.
