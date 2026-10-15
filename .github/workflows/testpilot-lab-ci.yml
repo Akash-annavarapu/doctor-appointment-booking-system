@@ -1,0 +1,34 @@
+name: TestPilot Lab verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'testpilot-lab/**'
+      - '.github/workflows/testpilot-lab-ci.yml'
+  pull_request:
+    paths:
+      - 'testpilot-lab/**'
+      - '.github/workflows/testpilot-lab-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-lab:
+    name: Standalone Lab unit and HTTP tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: testpilot-lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax
+        run: |
+          node --check server.js
+          node --check public/app.js
+      - name: Verify user stories, URL allowlist, live-inspection mock and LLM output
+        run: npm test

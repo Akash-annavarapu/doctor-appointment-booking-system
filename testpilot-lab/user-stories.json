@@ -1,0 +1,425 @@
+[
+  {
+    "id": "US-001",
+    "actor": "Visitor",
+    "title": "Register as patient",
+    "story": "As a visitor, I want to register using my name, email, mobile number and password so that I can access patient services.",
+    "target": {
+      "method": "POST",
+      "path": "/api/v1/auth/register"
+    },
+    "useCase": "UC-01",
+    "acceptanceCriteria": [
+      "Valid unique details create account and JWT",
+      "missing fields or short password are rejected."
+    ],
+    "source": "server/controllers/authController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-002",
+    "actor": "Visitor",
+    "title": "Sign in securely",
+    "story": "As a visitor, I want to sign in with my registered email and password so that I can access my account.",
+    "target": {
+      "method": "POST",
+      "path": "/api/v1/auth/login"
+    },
+    "useCase": "UC-02",
+    "acceptanceCriteria": [
+      "Valid credentials return an authenticated session",
+      "invalid credentials return no token."
+    ],
+    "source": "server/controllers/authController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-003",
+    "actor": "Authenticated user",
+    "title": "View my account",
+    "story": "As a authenticated user, I want to view my authenticated profile so that I can confirm my identity and role.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/auth/me"
+    },
+    "useCase": "UC-03",
+    "acceptanceCriteria": [
+      "Valid JWT returns the current user",
+      "missing or invalid JWT is rejected."
+    ],
+    "source": "server/routes/authRoutes.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-004",
+    "actor": "Authenticated user",
+    "title": "Access role-specific dashboards",
+    "story": "As an authenticated user, I want the application to show only the navigation and functionality authorized for my role so that patient, doctor, and administrator actions remain appropriately restricted.",
+    "target": {
+      "method": "UI",
+      "path": "/"
+    },
+    "useCase": "UC-15",
+    "acceptanceCriteria": [
+      "Patients cannot access doctor-only or admin-only actions.",
+      "Doctor and admin API permissions are enforced by backend role middleware."
+    ],
+    "source": "client/src/components/ProtectedRoute.jsx",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-005",
+    "actor": "Visitor",
+    "title": "Browse approved doctors",
+    "story": "As a visitor, I want to see a list of approved doctors so that I can choose a healthcare specialist.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/doctor/all"
+    },
+    "useCase": "UC-04",
+    "acceptanceCriteria": [
+      "Only approved doctors appear",
+      "an empty list is handled clearly."
+    ],
+    "source": "server/controllers/doctorController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-006",
+    "actor": "Visitor",
+    "title": "View doctor details",
+    "story": "As a visitor, I want to view an approved doctor's information so that I can decide whether to book.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/doctor/:id"
+    },
+    "useCase": "UC-04",
+    "acceptanceCriteria": [
+      "Valid approved doctor details are returned",
+      "invalid or unapproved IDs are rejected."
+    ],
+    "source": "server/routes/doctorRoutes.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-007",
+    "actor": "Visitor",
+    "title": "Check public available slots",
+    "story": "As a visitor, I want to check a doctor's remaining future appointment slots before logging in so that I can plan a visit.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/doctor/available-slots"
+    },
+    "useCase": "UC-08",
+    "acceptanceCriteria": [
+      "Public result shows open slots only",
+      "private booking details are not exposed."
+    ],
+    "source": "server/routes/doctorRoutes.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-008",
+    "actor": "Patient",
+    "title": "Apply to become a doctor",
+    "story": "As a patient, I want to submit a professional doctor application so that an administrator can review my request.",
+    "target": {
+      "method": "POST",
+      "path": "/api/v1/doctor/apply"
+    },
+    "useCase": "UC-05",
+    "acceptanceCriteria": [
+      "A valid application is stored as pending",
+      "validation errors are reported."
+    ],
+    "source": "server/controllers/doctorController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-009",
+    "actor": "Patient",
+    "title": "Prevent duplicate pending application",
+    "story": "As a patient, I want the system to prevent duplicate pending doctor applications so that the review queue stays consistent.",
+    "target": {
+      "method": "POST",
+      "path": "/api/v1/doctor/apply"
+    },
+    "useCase": "UC-05",
+    "acceptanceCriteria": [
+      "A second application while the first is pending is rejected."
+    ],
+    "source": "server/controllers/doctorController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-010",
+    "actor": "Administrator",
+    "title": "List pending doctor applications",
+    "story": "As a administrator, I want to see pending doctor applications so that I can review requests.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/admin/doctors/pending"
+    },
+    "useCase": "UC-06",
+    "acceptanceCriteria": [
+      "Admins see pending submissions",
+      "patients are forbidden."
+    ],
+    "source": "server/routes/adminRoutes.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-011",
+    "actor": "Administrator",
+    "title": "Approve a doctor",
+    "story": "As a administrator, I want to approve an eligible pending doctor application so that the doctor can access doctor features.",
+    "target": {
+      "method": "PUT",
+      "path": "/api/v1/admin/doctors/approve/:id"
+    },
+    "useCase": "UC-06",
+    "acceptanceCriteria": [
+      "Pending record becomes approved and user gets doctor role",
+      "non-admin cannot approve."
+    ],
+    "source": "server/controllers/adminController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-012",
+    "actor": "Administrator",
+    "title": "Reject a doctor application",
+    "story": "As a administrator, I want to reject a pending doctor application so that invalid requests do not receive doctor access.",
+    "target": {
+      "method": "PUT",
+      "path": "/api/v1/admin/doctors/reject/:id"
+    },
+    "useCase": "UC-06",
+    "acceptanceCriteria": [
+      "Pending application becomes rejected",
+      "non-admin requests are forbidden."
+    ],
+    "source": "server/controllers/adminController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-013",
+    "actor": "Doctor",
+    "title": "Edit professional profile",
+    "story": "As a doctor, I want to update my doctor profile so that patients can view accurate professional details.",
+    "target": {
+      "method": "PUT",
+      "path": "/api/v1/doctor/profile"
+    },
+    "useCase": "UC-07",
+    "acceptanceCriteria": [
+      "Authorized doctor changes valid fields",
+      "invalid changes are rejected."
+    ],
+    "source": "server/controllers/doctorController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-014",
+    "actor": "Doctor",
+    "title": "Configure weekly working schedule",
+    "story": "As a doctor, I want to configure my weekly sessions and slot duration so that patients book only during working hours.",
+    "target": {
+      "method": "PUT",
+      "path": "/api/v1/doctor/profile"
+    },
+    "useCase": "UC-07",
+    "acceptanceCriteria": [
+      "Valid sessions and supported slot durations save",
+      "overlapping sessions and unsupported durations are rejected."
+    ],
+    "source": "server/controllers/doctorController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-015",
+    "actor": "Doctor",
+    "title": "Block unavailable dates",
+    "story": "As a doctor, I want to block days when I am unavailable so that no bookable slots appear on those dates.",
+    "target": {
+      "method": "PUT",
+      "path": "/api/v1/doctor/profile"
+    },
+    "useCase": "UC-07",
+    "acceptanceCriteria": [
+      "Valid blocked dates save",
+      "slot availability excludes blocked days."
+    ],
+    "source": "server/controllers/doctorController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-016",
+    "actor": "Patient",
+    "title": "Find authenticated appointment slots",
+    "story": "As a patient, I want to view future free slots for an approved doctor so that I can select a valid time.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/appointment/available-slots"
+    },
+    "useCase": "UC-08",
+    "acceptanceCriteria": [
+      "Available slots respect schedule, existing bookings and date",
+      "past dates are rejected."
+    ],
+    "source": "server/controllers/appointmentController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-017",
+    "actor": "Patient",
+    "title": "Book an available appointment",
+    "story": "As a patient, I want to reserve an open slot with a doctor so that I can receive a pending appointment.",
+    "target": {
+      "method": "POST",
+      "path": "/api/v1/appointment/book"
+    },
+    "useCase": "UC-09",
+    "acceptanceCriteria": [
+      "Valid booking creates Pending appointment",
+      "unavailable times are rejected."
+    ],
+    "source": "server/controllers/appointmentController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-018",
+    "actor": "Patient",
+    "title": "Prevent double booking",
+    "story": "As a patient, I want the same doctor slot to be reserved at most once so that two patients cannot hold the identical active slot.",
+    "target": {
+      "method": "POST",
+      "path": "/api/v1/appointment/book"
+    },
+    "useCase": "UC-09",
+    "acceptanceCriteria": [
+      "Competing requests produce at most one active booking",
+      "conflicting attempt is rejected."
+    ],
+    "source": "server/models/Appointment.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-019",
+    "actor": "Patient",
+    "title": "View my appointments",
+    "story": "As a patient, I want to view my own booked appointments and their statuses so that I can track visits.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/appointment/user"
+    },
+    "useCase": "UC-10",
+    "acceptanceCriteria": [
+      "Only my appointments are visible after authentication."
+    ],
+    "source": "server/controllers/appointmentController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-020",
+    "actor": "Doctor",
+    "title": "View assigned appointments",
+    "story": "As a doctor, I want to view only appointments assigned to me so that I can manage my patient schedule.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/appointment/doctor"
+    },
+    "useCase": "UC-11",
+    "acceptanceCriteria": [
+      "Assigned doctor sees own appointments",
+      "other doctors' bookings stay private."
+    ],
+    "source": "server/controllers/appointmentController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-021",
+    "actor": "Doctor",
+    "title": "Approve or reject pending appointment",
+    "story": "As a doctor, I want to approve or reject a pending booking so that the patient knows whether it is accepted.",
+    "target": {
+      "method": "PUT",
+      "path": "/api/v1/appointment/update/:id"
+    },
+    "useCase": "UC-12",
+    "acceptanceCriteria": [
+      "Pending can transition to Approved or Rejected",
+      "other doctors cannot change it."
+    ],
+    "source": "server/controllers/appointmentController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-022",
+    "actor": "Doctor",
+    "title": "Complete an approved appointment",
+    "story": "As a doctor, I want to mark an approved appointment completed so that the visit workflow is finalized.",
+    "target": {
+      "method": "PUT",
+      "path": "/api/v1/appointment/update/:id"
+    },
+    "useCase": "UC-12",
+    "acceptanceCriteria": [
+      "Only Approved becomes Completed",
+      "terminal states cannot be reopened."
+    ],
+    "source": "server/controllers/appointmentController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-023",
+    "actor": "Patient",
+    "title": "Attach a supported medical document",
+    "story": "As a patient, I want to attach an optional medical document while booking so that my doctor has relevant context.",
+    "target": {
+      "method": "POST",
+      "path": "/api/v1/appointment/book"
+    },
+    "useCase": "UC-13",
+    "acceptanceCriteria": [
+      "PDF, JPEG or PNG files up to 5 MiB are accepted",
+      "disallowed formats and excess size are rejected."
+    ],
+    "source": "server/middleware/medicalDocumentUpload.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-024",
+    "actor": "Doctor",
+    "title": "Access assigned patient's medical document",
+    "story": "As a doctor, I want to securely retrieve an attachment for my assigned appointment so that I can review it.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/appointment/:id/medical-document"
+    },
+    "useCase": "UC-13",
+    "acceptanceCriteria": [
+      "Only the assigned doctor may access an attached file",
+      "other users cannot."
+    ],
+    "source": "server/controllers/appointmentController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  },
+  {
+    "id": "US-025",
+    "actor": "Authenticated user",
+    "title": "Read and manage notifications",
+    "story": "As a authenticated user, I want to view my notifications and mark them as read so that I can keep track of appointment updates.",
+    "target": {
+      "method": "GET",
+      "path": "/api/v1/notification"
+    },
+    "useCase": "UC-14",
+    "acceptanceCriteria": [
+      "Only own notifications are returned",
+      "update routes affect only owned records."
+    ],
+    "source": "server/controllers/notificationController.js",
+    "status": "Documented — acceptance criteria require verification before AI test execution"
+  }
+]
