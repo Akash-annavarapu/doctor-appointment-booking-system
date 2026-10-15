@@ -4,7 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const stories = require("./user-stories.json");
-const { checksForStory, executeStoryChecks } = require("./verifiedChecks");
+const { CHECKS, checksForStory, executeStoryChecks } = require("./verifiedChecks");
+const { issueReceipt, executeGeneratedCases } = require("./generatedCaseRunner");
 
 const FRONTEND = "https://doctor-appointment-frontend-9dbs.onrender.com";
 const BACKEND = "https://doctor-appointment-booking-system-u1eq.onrender.com";
@@ -110,7 +111,7 @@ const schema = {
       type: "array",
       items: {
         type: "object", additionalProperties: false,
-        required: ["id", "title", "type", "priority", "preconditions", "steps", "testData", "expectedResult"],
+        required: ["id", "title", "type", "priority", "preconditions", "steps", "testData", "expectedResult", "probeId"],
         properties: {
           id: { type: "string" },
           title: { type: "string" },
@@ -119,18 +120,20 @@ const schema = {
           preconditions: { type: "string" },
           steps: { type: "array", items: { type: "string" } },
           testData: { type: "string" },
-          expectedResult: { type: "string" }
+          expectedResult: { type: "string" },
+          probeId: { type: "string", enum: ["NONE", ...CHECKS.map(check => check.id)] }
         }
       }
     }
   }
 };
 
-function validateGenerated(output) {
+function validateGenerated(output, storyId) {
   if (!output || !Array.isArray(output.cases) || output.cases.length < 4 || output.cases.length > 8) {
     throw new ApiError(502, "LLM returned invalid test-case structure.");
   }
   const used = new Set();
+  const eligible = new Map(checksForStory(storyId).map(check => [check.id, check]));
   const cases = output.cases.map(item => {
     if (!item || !/^AI-\d{3}$/.test(item.id) || used.has(item.id) ||
         !["positive","negative","boundary","security","state","concurrency"].includes(item.type) ||
@@ -142,9 +145,14 @@ function validateGenerated(output) {
       throw new ApiError(502, "LLM returned unreviewable test cases.");
     }
     used.add(item.id);
+    const probeId = item.probeId || "NONE";
+    if (probeId !== "NONE" && !eligible.has(probeId)) {
+      throw new ApiError(502, "LLM assigned a probe unrelated to the selected user story.");
+    }
     return { id: item.id, title: item.title, type: item.type, priority: item.priority,
       preconditions: item.preconditions, steps: item.steps, testData: item.testData,
-      expectedResult: item.expectedResult, executionStatus: "NOT_RUN", reviewed: false };
+      expectedResult: probeId === "NONE" ? item.expectedResult : eligible.get(probeId).expected,
+      probeId, executionStatus: "NOT_RUN", reviewed: false };
   });
   return cases;
 }
@@ -160,6 +168,7 @@ async function generateCases({ story, inspection, fetchImpl = fetch }) {
     "Cover positive, negative and authorization/boundary cases when supported by the acceptance criteria.",
     "Never produce credentials, real patient data, private documents, shell commands, network exploit instructions or destructive test actions.",
     "Use synthetic input descriptions. Do not execute tests. All results remain NOT_RUN until reviewed.",
+    "Assign probeId only when your case explicitly tests exactly that eligible read-only probe; otherwise use NONE. Never assign unrelated probes or suggest unsafe production writes.",
     "Use distinct IDs AI-001 through AI-008, each title under 120 characters, and output only the requested JSON."
   ].join(" ");
   let response;
@@ -174,7 +183,8 @@ async function generateCases({ story, inspection, fetchImpl = fetch }) {
         max_output_tokens: 6000,
         input: JSON.stringify({ target: story.target, actor: story.actor, useCase: story.useCase,
           userStory: story.story, acceptanceCriteria: story.acceptanceCriteria,
-          sourceFile: story.source, publicInspection: inspection }),
+          sourceFile: story.source, publicInspection: inspection,
+          eligibleReadOnlyProbes: checksForStory(story.id) }),
         text: { format: { type: "json_schema", name: "testpilot_story_cases", strict: true, schema } }
       }),
       signal: AbortSignal.timeout(45000)
@@ -192,7 +202,7 @@ async function generateCases({ story, inspection, fetchImpl = fetch }) {
   let parsed;
   try { parsed = JSON.parse(raw); }
   catch { throw new ApiError(502, "AI did not return valid structured JSON."); }
-  return validateGenerated(parsed);
+  return validateGenerated(parsed, story.id);
 }
 
 function json(res, status, body) {
@@ -200,13 +210,13 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function readBody(req) {
+function readBody(req, maxBytes = 10000) {
   return new Promise((resolve, reject) => {
     let text = "";
     req.on("data", chunk => {
       text += chunk;
-      if (text.length > 10000) {
-        reject(new ApiError(413, "Request exceeded 10 KB limit."));
+      if (text.length > maxBytes) {
+        reject(new ApiError(413, "Request exceeded size limit."));
         req.destroy();
       }
     });
@@ -275,13 +285,25 @@ async function handle(req, res) {
     res.writeHead(200, { "Content-Type": mime });
     return res.end(fs.readFileSync(path.join(__dirname, "public", filename)));
   }
-  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate" || pathname === "/api/execute")) {
+  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate" || pathname === "/api/execute" || pathname === "/api/execute-generated")) {
     try {
-      const payload = await readBody(req);
+      const payload = await readBody(req, pathname === "/api/execute-generated" ? 40000 : 10000);
       const targetUrl = checkTarget(payload.targetUrl);
       if (pathname === "/api/inspect") {
         const inspection = await inspectSut(targetUrl);
         return json(res, 200, { success: true, inspection });
+      }
+      if (pathname === "/api/execute-generated") {
+        if (!stories.some(item => item.id === payload.storyId)) throw new ApiError(400, "Unknown story.");
+        checkAccessCode(payload.accessCode);
+        takeRateLimit(req.socket.remoteAddress || "unknown");
+        try {
+          const run = await executeGeneratedCases(payload.storyId, targetUrl, payload.cases,
+            payload.selectedIds, payload.receipt);
+          return json(res, 200, { success: true, run });
+        } catch (error) {
+          throw new ApiError(400, error.message);
+        }
       }
       if (pathname === "/api/execute") {
         if (!stories.some(item => item.id === payload.storyId)) {
@@ -301,7 +323,8 @@ async function handle(req, res) {
       const inspection = await inspectSut(targetUrl);
       const cases = await generateCases({ story, inspection });
       return json(res, 200, { success: true, storyId: story.id, targetUrl, inspection,
-        generatedBy: "OpenAI", executionStatus: "NOT_RUN", cases });
+        generatedBy: "OpenAI", executionStatus: "NOT_RUN", cases,
+        receipt: issueReceipt(story.id, targetUrl, cases) });
     } catch (error) {
       if (!(error instanceof ApiError)) console.error("Lab request failed:", error.message);
       return json(res, error instanceof ApiError ? error.status : 500, {
