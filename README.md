@@ -1,3 +1,15 @@
+# Week 5 — Healthcare SUT + Separate TestPilot Lab
+
+**The project now has two separate applications, as required by Kavi sir.** The deployed doctor appointment booking system is the existing GitHub healthcare **system under test**. The independently runnable [TestPilot Lab](testpilot-lab/README.md) is the new testing application that accepts a healthcare URL and a documented user story, inspects allowlisted public app data, and can generate reviewable test cases using OpenAI once privately configured.
+
+- **[25 documented user stories](docs/WEEK5_USER_STORIES.md)**: actors/roles, acceptance criteria, real routes, source traceability across 15 use cases.
+- **[Week 5 progress report](docs/WEEK5_PROGRESS_REPORT.md)**: retrospective Weeks 1–4, Week 5 deliverables, milestones and next steps.
+- **[Separate testing application](testpilot-lab/README.md)**: independent Node server and responsive UI; must deploy as an additional Render service, not as a replacement of the healthcare app.
+- **Existing healthcare URL:** https://doctor-appointment-frontend-9dbs.onrender.com/
+
+**Milestone boundary:** The 25 stories are documented; the standalone tester's UI/inspection/code integration is implemented but has not been deployed as a separate public service in this repository. A private OpenAI API key and Lab access code are required for live LLM generation. Generated cases are **NOT RUN** and automated execution is the subsequent milestone.
+
+---
 ## Demo doctors and booking availability
 
 The TestPilot home page can display **15 clearly labeled fictional demo doctors** spanning 15 different specializations. These are educational records, **not real healthcare providers**. Their weekly timetables are synthetic. Visitors can check **real-time remaining slots** for a selected date via a public, read-only endpoint: `GET /api/v1/doctor/available-slots?doctorId=...&appointmentDate=YYYY-MM-DD`. Only open slot times are returned; no patient information or booked appointment records are returned. Real booking still requires authentication and uses the existing `/appointment/book` validations.
