@@ -234,6 +234,36 @@ async function handle(req, res) {
   if (req.method === "GET" && pathname === "/api/stories") {
     return json(res, 200, { count: stories.length, stories, targetUrl: FRONTEND + "/" });
   }
+  if (req.method === "GET" && pathname === "/api/ci-results") {
+    try {
+      const response = await fetch(BACKEND + "/api/reports/recent?limit=6", {
+        method: "GET", redirect: "error", signal: AbortSignal.timeout(30000),
+        headers: { Accept: "application/json" }
+      });
+      if (!response.ok) throw new ApiError(502, "Verified CI reports are unavailable.");
+      const payload = await response.json();
+      if (!payload.success || !Array.isArray(payload.runs)) {
+        throw new ApiError(502, "Verified CI response structure is invalid.");
+      }
+      const runs = payload.runs.filter(r => r.engine === "Static-CI" &&
+        r.summary && typeof r.summary === "object").slice(0, 6).map(r => ({
+          runId: String(r.runId || "").slice(0, 128),
+          timestamp: r.timestamp, suite: String(r.suite || "").slice(0, 90),
+          engine: "Static-CI",
+          summary: {
+            total: Number(r.summary.total) || 0,
+            passed: Number(r.summary.passed) || 0,
+            failed: Number(r.summary.failed) || 0,
+            skipped: Number(r.summary.skipped) || 0,
+            durationMs: Number(r.summary.durationMs) || 0
+          }
+        }));
+      return json(res, 200, { success: true, runs,
+        statement: "Measured existing Jest/Vitest CI runs. Not AI-generated test execution." });
+    } catch {
+      return json(res, 502, { success: false, message: "Verified CI reporting is currently unavailable." });
+    }
+  }
   if (req.method === "GET" && pathname === "/api/probes") {
     const storyId = new URL(req.url, "http://localhost").searchParams.get("storyId");
     if (!stories.some(s => s.id === storyId)) return json(res, 400, { success: false, message: "Unknown user story." });
