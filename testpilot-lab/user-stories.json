@@ -53,18 +53,18 @@
   {
     "id": "US-004",
     "actor": "Authenticated user",
-    "title": "Log out",
-    "story": "As a authenticated user, I want to log out of the website so that my browser no longer uses my session.",
+    "title": "Access role-specific dashboards",
+    "story": "As an authenticated user, I want the application to show only the navigation and functionality authorized for my role so that patient, doctor, and administrator actions remain appropriately restricted.",
     "target": {
       "method": "UI",
       "path": "/"
     },
-    "useCase": "UC-03",
+    "useCase": "UC-15",
     "acceptanceCriteria": [
-      "Logout clears the client-side session",
-      "protected screens require a new login."
+      "Patients cannot access doctor-only or admin-only actions.",
+      "Doctor and admin API permissions are enforced by backend role middleware."
     ],
-    "source": "client/src/context/AuthContext.jsx",
+    "source": "client/src/components/ProtectedRoute.jsx",
     "status": "Documented — acceptance criteria require verification before AI test execution"
   },
   {
