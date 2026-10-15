@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TestPilot Lab – user story-driven test case generation for an existing healthcare app">
+  <title>TestPilot Lab — AI Test Case Generation</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"> <span class="brand-icon">T</span> <span>TestPilot <small>LAB</small></span> </a>
+    <span class="top-tag">SEPARATE TESTING APPLICATION</span>
+  </header>
+  <main class="layout">
+    <section class="hero">
+      <p class="eyebrow">WEEK 5 · AI-ASSISTED QUALITY ENGINEERING</p>
+      <h1>From a user story to<br><em>test cases.</em></h1>
+      <p class="lead">Inspect the deployed healthcare app, select a code-grounded user story, and request AI-generated test scenarios. The healthcare system stays independent and unchanged.</p>
+      <div class="quick-stats">
+        <div><strong id="story-count">25</strong><span>documented stories</span></div>
+        <div><strong>15</strong><span>mapped use cases</span></div>
+        <div><strong>0</strong><span>AI cases executed automatically</span></div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel config" aria-labelledby="setup-heading">
+        <div class="panel-heading"><span class="step-number">01</span><div><p class="kicker">INPUT</p><h2 id="setup-heading">Choose a feature</h2></div></div>
+        <form id="generate-form">
+          <label for="url-input">Deployed healthcare application URL</label>
+          <input id="url-input" type="url" autocomplete="url" required maxlength="220" placeholder="https://doctor-appointment-frontend-9dbs.onrender.com/">
+          <p class="help">Only the approved existing healthcare deployment is inspected. No arbitrary sites or private URLs.</p>
+          <button id="inspect-button" class="ghost" type="button">↗ Inspect live application</button>
+          <div id="inspection" class="inspection" role="status" aria-live="polite">Inspection has not started.</div>
+          <label for="story-select">Documented user story</label>
+          <select id="story-select" required><option value="">Loading 25 stories…</option></select>
+          <div id="story-meta" class="meta"></div>
+          <label for="story-input">User story (editable)</label>
+          <textarea id="story-input" rows="6" maxlength="1500" required placeholder="As a patient, I want to book an available appointment so that…"></textarea>
+          <p class="help">Use “As a [role], I want [action], so that [outcome]”. AI also receives the source-reviewed acceptance criteria and API route.</p>
+          <label for="access-code">Lab access code <span class="light">(only needed for live generation)</span></label>
+          <input id="access-code" type="password" autocomplete="off" placeholder="Configured privately by the project owner">
+          <button id="generate-button" class="primary" type="submit">✧ Generate AI test cases <span aria-hidden="true">→</span></button>
+          <p class="safety">Generation requires a configured OpenAI API key and lab access code. No key is sent to the browser.</p>
+        </form>
+      </section>
+
+      <section class="panel results" aria-labelledby="results-heading">
+        <div class="panel-heading"><span class="step-number">02</span><div><p class="kicker">OUTPUT</p><h2 id="results-heading">Generated test cases</h2></div><span id="result-count" class="count">0 cases</span></div>
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">✳</div>
+          <h3>Ready for your first test suite</h3>
+          <p>Start by inspecting the healthcare URL and selecting a story. Approved AI results will appear here as reviewable, unexecuted test cases.</p>
+          <div class="stages">
+            <span>1. Inspect</span><span>2. Generate</span><span>3. Review</span><span>4. Execute later</span>
+          </div>
+        </div>
+        <div id="cases" class="cases"></div>
+        <div id="results-footer" class="results-footer" hidden>
+          <span class="warning">All generated cases are <strong>NOT RUN</strong>. Human review and isolated CI are required.</span>
+          <button type="button" id="export-button" class="ghost">↓ Export test cases JSON</button>
+        </div>
+      </section>
+    </div>
+    <section class="footnote">
+      <h2>Two applications, one testing objective.</h2>
+      <p><strong>System under test:</strong> the original GitHub doctor appointment booking application on Render. <strong>Testing application:</strong> this independent TestPilot Lab. It collects the deployed URL and user story, inspects public app evidence, and generates candidate cases. Automated execution and verified PASS/FAIL reporting are the next milestone.</p>
+      <a href="https://doctor-appointment-frontend-9dbs.onrender.com/" target="_blank" rel="noopener noreferrer">Open healthcare application ↗</a>
+    </section>
+  </main>
+</body>
+</html>
