@@ -92,6 +92,9 @@ function renderResult(data) {
   caseBox.replaceChildren();
   empty.hidden = true;
   footer.hidden = false;
+  document.querySelector("#generated-execution").hidden = !data.receipt;
+  document.querySelector("#generated-run-message").textContent = "";
+  document.querySelector("#generated-run-results").replaceChildren();
   count.textContent = data.cases.length + " cases";
   displayInspection(data);
   for (const item of data.cases) {
@@ -101,7 +104,18 @@ function renderResult(data) {
     top.append(node("span", "type-chip", item.type));
     top.append(node("span", "priority", item.priority));
     top.append(node("span", "not-run", "NOT RUN"));
+    const approval = node("label", "approval-label");
+    const checkbox = node("input", "ai-case-approval");
+    checkbox.type = "checkbox";
+    checkbox.value = item.id;
+    checkbox.checked = false;
+    approval.append(checkbox);
+    approval.append(node("span", "", "Approve " + item.id));
+    top.append(approval);
     card.append(top);
+    card.append(node("p", "probe-label", item.probeId && item.probeId !== "NONE"
+      ? "Executable as verified read-only assertion: " + item.probeId
+      : "Requires staging/isolated CI; live execution will SKIP"));
     card.append(node("h3", "", item.title));
     const details = [
       ["Preconditions", item.preconditions],
@@ -286,5 +300,59 @@ loadCiButton.addEventListener("click", async () => {
     ciMessage.className = "message error";
   } finally {
     loadCiButton.disabled = false;
+  }
+});
+
+
+// Run only explicitly approved candidate cases bound to audited, read-only GET checks.
+// The server verifies a signed receipt from the original AI generation response.
+const executeGeneratedButton = document.querySelector("#execute-generated-button");
+const generatedRunMessage = document.querySelector("#generated-run-message");
+const generatedRunResults = document.querySelector("#generated-run-results");
+executeGeneratedButton.addEventListener("click", async () => {
+  if (!currentResult?.receipt) {
+    generatedRunMessage.textContent = "Generate a fresh AI test suite first.";
+    generatedRunMessage.className = "message error";
+    return;
+  }
+  const selectedIds = [...document.querySelectorAll(".ai-case-approval:checked")].map(el => el.value);
+  if (!selectedIds.length) {
+    generatedRunMessage.textContent = "Review and explicitly approve at least one generated case.";
+    generatedRunMessage.className = "message error";
+    return;
+  }
+  executeGeneratedButton.disabled = true;
+  generatedRunResults.replaceChildren();
+  generatedRunMessage.textContent = "Executing audited read-only assertions for approved cases…";
+  generatedRunMessage.className = "message";
+  try {
+    const response = await request("/api/execute-generated", {
+      storyId: currentResult.storyId,
+      targetUrl: currentResult.targetUrl,
+      cases: currentResult.cases,
+      selectedIds,
+      receipt: currentResult.receipt,
+      accessCode: document.querySelector("#access-code").value
+    });
+    const run = response.run;
+    generatedRunMessage.textContent = "Measured bound checks: " + run.summary.passed + " PASS, " +
+      run.summary.failed + " FAIL, " + run.summary.skipped + " SKIPPED. " + run.interpretation;
+    generatedRunMessage.className = "message success";
+    for (const result of run.results) {
+      const card = node("article", "run-card");
+      const top = node("div", "run-card-top");
+      top.append(node("strong", "", result.id + " · " + result.title));
+      top.append(node("span", "status-chip " + result.status.toLowerCase(), result.status));
+      card.append(top);
+      card.append(node("p", "", result.expected));
+      card.append(node("p", "actual", result.actual));
+      card.append(node("small", "", result.scope + " · " + result.executionTime + " ms"));
+      generatedRunResults.append(card);
+    }
+  } catch (error) {
+    generatedRunMessage.textContent = error.message;
+    generatedRunMessage.className = "message error";
+  } finally {
+    executeGeneratedButton.disabled = false;
   }
 });
