@@ -55,13 +55,20 @@
           <h3>Ready for your first test suite</h3>
           <p>Start by inspecting the healthcare URL and selecting a story. Approved AI results will appear here as reviewable, unexecuted test cases.</p>
           <div class="stages">
-            <span>1. Inspect</span><span>2. Generate</span><span>3. Review</span><span>4. Execute later</span>
+            <span>1. Inspect</span><span>2. Generate</span><span>3. Review</span><span>4. Run supported checks</span>
           </div>
         </div>
         <div id="cases" class="cases"></div>
         <div id="results-footer" class="results-footer" hidden>
           <span class="warning">All generated cases are <strong>NOT RUN</strong>. Human review and isolated CI are required.</span>
           <button type="button" id="export-button" class="ghost">↓ Export test cases JSON</button>
+        </div>
+        <div id="generated-execution" class="ai-execution-box" hidden>
+          <h3>Run approved AI cases (supported subset)</h3>
+          <p class="help">Select cases above to approve. Only cases bound to a reviewed, read-only healthcare API assertion can execute against the live system. Other cases are explicitly SKIPPED; full booking/login automation requires isolated staging.</p>
+          <button id="execute-generated-button" class="primary" type="button">▶ Execute selected AI cases safely</button>
+          <div id="generated-run-message" class="message" role="status" aria-live="polite"></div>
+          <div id="generated-run-results" class="run-results"></div>
         </div>
       </section>
     </div>
