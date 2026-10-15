@@ -106,7 +106,7 @@ const schema = {
   type: "object", additionalProperties: false, required: ["cases"],
   properties: {
     cases: {
-      type: "array", minItems: 4, maxItems: 8,
+      type: "array",
       items: {
         type: "object", additionalProperties: false,
         required: ["id", "title", "type", "priority", "preconditions", "steps", "testData", "expectedResult"],
@@ -116,7 +116,7 @@ const schema = {
           type: { type: "string", enum: ["positive", "negative", "boundary", "security", "state", "concurrency"] },
           priority: { type: "string", enum: ["P0", "P1", "P2"] },
           preconditions: { type: "string" },
-          steps: { type: "array", minItems: 1, maxItems: 8, items: { type: "string" } },
+          steps: { type: "array", items: { type: "string" } },
           testData: { type: "string" },
           expectedResult: { type: "string" }
         }
@@ -141,7 +141,9 @@ function validateGenerated(output) {
       throw new ApiError(502, "LLM returned unreviewable test cases.");
     }
     used.add(item.id);
-    return { ...item, executionStatus: "NOT_RUN", reviewed: false };
+    return { id: item.id, title: item.title, type: item.type, priority: item.priority,
+      preconditions: item.preconditions, steps: item.steps, testData: item.testData,
+      expectedResult: item.expectedResult, executionStatus: "NOT_RUN", reviewed: false };
   });
   return cases;
 }
