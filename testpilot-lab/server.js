@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const stories = require("./user-stories.json");
+const { checksForStory, executeStoryChecks } = require("./verifiedChecks");
 
 const FRONTEND = "https://doctor-appointment-frontend-9dbs.onrender.com";
 const BACKEND = "https://doctor-appointment-booking-system-u1eq.onrender.com";
@@ -233,18 +234,33 @@ async function handle(req, res) {
   if (req.method === "GET" && pathname === "/api/stories") {
     return json(res, 200, { count: stories.length, stories, targetUrl: FRONTEND + "/" });
   }
+  if (req.method === "GET" && pathname === "/api/probes") {
+    const storyId = new URL(req.url, "http://localhost").searchParams.get("storyId");
+    if (!stories.some(s => s.id === storyId)) return json(res, 400, { success: false, message: "Unknown user story." });
+    return json(res, 200, { storyId, checks: checksForStory(storyId),
+      scope: "Public read-only probes. Not proof of complete feature or AI-case execution." });
+  }
   if (req.method === "GET" && assetPaths[pathname]) {
     const [filename, mime] = assetPaths[pathname];
     res.writeHead(200, { "Content-Type": mime });
     return res.end(fs.readFileSync(path.join(__dirname, "public", filename)));
   }
-  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate")) {
+  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate" || pathname === "/api/execute")) {
     try {
       const payload = await readBody(req);
       const targetUrl = checkTarget(payload.targetUrl);
       if (pathname === "/api/inspect") {
         const inspection = await inspectSut(targetUrl);
         return json(res, 200, { success: true, inspection });
+      }
+      if (pathname === "/api/execute") {
+        if (!stories.some(item => item.id === payload.storyId)) {
+          throw new ApiError(400, "Select a documented story before executing.");
+        }
+        takeRateLimit(req.socket.remoteAddress || "unknown");
+        // Each probe is a fixed read-only GET to an allowlisted public host; no model code runs.
+        const run = await executeStoryChecks(payload.storyId);
+        return json(res, 200, { success: true, targetUrl, run });
       }
       const story = getStory(payload);
       checkAccessCode(payload.accessCode);
