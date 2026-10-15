@@ -4,10 +4,10 @@
 
 - **[25 documented user stories](docs/WEEK5_USER_STORIES.md)**: actors/roles, acceptance criteria, real routes, source traceability across 15 use cases.
 - **[Week 5 progress report](docs/WEEK5_PROGRESS_REPORT.md)**: retrospective Weeks 1–4, Week 5 deliverables, milestones and next steps.
-- **[Separate testing application](testpilot-lab/README.md)**: independent Node server and responsive UI; must deploy as an additional Render service, not as a replacement of the healthcare app.
+- **[Live separate testing application](https://testpilot-lab.onrender.com/)**: an independently deployed Node service with URL + user-story input, public app inspection, and measured safe read-only checks. [Source and setup](testpilot-lab/README.md).
 - **Existing healthcare URL:** https://doctor-appointment-frontend-9dbs.onrender.com/
 
-**Milestone boundary:** The 25 stories are documented; the standalone tester's UI/inspection/code integration is implemented but has not been deployed as a separate public service in this repository. A private OpenAI API key and Lab access code are required for live LLM generation. Generated cases are **NOT RUN** and automated execution is the subsequent milestone.
+**Milestone boundary:** The 25 stories are documented, and the separate testing service is now deployed at https://testpilot-lab.onrender.com/. It can inspect public healthcare endpoints and execute measured, read-only approved probes. A private OpenAI API key and Lab access code are still required for live LLM generation. Generated AI cases remain **NOT RUN** until human-reviewed and executed in isolated CI; a passing public probe does not establish that a generated case passed.
 
 ---
 ## Demo doctors and booking availability
