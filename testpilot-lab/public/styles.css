@@ -47,3 +47,24 @@ button:disabled{opacity:.5;cursor:wait}.ghost{color:#405ddd;background:#eff3ff;b
 .footnote a{font-size:12px;font-weight:800;text-decoration:none}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.layout{padding:35px 5%}.hero h1{letter-spacing:-2px}.top-tag{display:none}.results{min-height:420px}.empty-state{padding:65px 25px}}
 @media(max-width:450px){.quick-stats{gap:10px}.quick-stats>div{padding-right:10px}.quick-stats strong{font-size:19px}.quick-stats span{font-size:10px}.panel-heading,.config form{padding-left:19px;padding-right:19px}.cases{padding:0 15px}.topbar{padding:0 5%}}
+
+
+.execution-panel{margin-top:25px}.execution-body{padding:24px 30px 32px}
+.lead-small{font-size:13px;color:#657990;line-height:1.8;margin:0 0 20px;max-width:900px}
+.probe-options{margin-bottom:12px;display:flex;flex-direction:column;gap:9px}
+.probe-item{display:flex;flex-direction:column;gap:4px;background:#f3f7fd;border:1px solid #dfe8f4;border-radius:10px;padding:12px 15px}
+.probe-item strong{font-size:12px;color:#2c4876}.probe-item span,.probe-note{font-size:12px;color:#667d98;line-height:1.6}
+.execution-body>.primary{min-width:290px;max-width:450px}
+.run-summary{display:flex;flex-wrap:wrap;gap:14px;margin:22px 0}
+.metric{min-width:100px;background:#f1f5fc;padding:15px 20px;border-radius:11px;display:flex;flex-direction:column;gap:6px}
+.metric strong{font-size:23px;color:#253f79}.metric span{font-size:10px;font-weight:850;letter-spacing:1px;color:#657e9e}
+.run-results{display:flex;flex-direction:column;gap:11px;margin-bottom:18px}
+.run-card{border:1px solid #e1e9f4;padding:15px;border-radius:10px;background:#fdfefe}
+.run-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.run-card-top strong{font-size:13px;color:#243a5b}.run-card p{font-size:12px;line-height:1.7;color:#60748e;margin:8px 0 0}
+.run-card .actual{font-weight:700;color:#3c5b88}.run-card small{display:block;font-size:10px;color:#8190a1;margin-top:7px}
+.status-chip{font-size:10px;border-radius:5px;padding:5px 8px;font-weight:850}
+.status-chip.pass{background:#e1f6e9;color:#247546}.status-chip.fail{background:#ffebeb;color:#a73636}
+.status-chip.skipped{background:#fff2db;color:#987024}
+#export-run-button[hidden]{display:none}
+@media(max-width:600px){.execution-body{padding:20px}.metric{flex:1}.execution-body>.primary{width:100%;min-width:0}}
