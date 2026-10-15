@@ -51,3 +51,18 @@ The generated cases include id, title, type, priority, preconditions, steps, tes
 - Phase 3: execute approved tests in isolated CI against synthetic fixtures/test database, collect measured results and show PASS/FAIL. Never run LLM-generated code directly on production Render or create real appointments as a smoke test.
 
 Further reading: docs/WEEK5_USER_STORIES.md and docs/WEEK5_PROGRESS_REPORT.md.
+
+
+## Real execution evidence (limited and safe)
+
+The Lab now includes a Stage 3 **Verified live checks** panel. For eligible stories (US-003, US-004, US-005, US-006, US-007, US-010, US-019, US-020, US-025), the fixed server-side test engine sends only GET requests to the known healthcare frontend/backend and measures contract assertions such as React root, approved doctor list, public slots, or missing-session authorization. The results show actual PASS, FAIL, or SKIPPED with timestamps, run IDs, durations, and JSON export.
+
+For the other stories, this panel explicitly reports SKIPPED: real patient registration, appointment creation, doctor status updates and admin mutations must only be automated against a **separate test environment and synthetic fixtures**, not the public production deployment. These read-only probes are source-reviewed checks **associated with** stories; they are NOT the execution of model-generated test scripts and do not prove the entire story passed.
+
+A separate **Latest measured CI runs** panel reads GET /api/ci-results, which proxies summarized existing healthcare Jest/Vitest run data from the backend reporting API. These are actual, pre-existing Static-CI tests run in an isolated GitHub Actions MongoDB test database, not AI-generated tests.
+
+- GET /api/probes?storyId=US-005 — list allowlisted test assertions applicable to a story.
+- POST /api/execute — {"storyId":"US-005","targetUrl":"https://doctor-appointment-frontend-9dbs.onrender.com/"}; runs only pinned GET probes (basic IP throttling).
+- GET /api/ci-results — latest measured static CI report summaries.
+
+Generated AI cases remain review-required, NOT_RUN. Do not combine a passing probe with an unrelated generated candidate as a claim of passing the entire generated case.

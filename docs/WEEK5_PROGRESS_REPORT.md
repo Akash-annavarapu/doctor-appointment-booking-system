@@ -93,3 +93,12 @@ The following week-by-week organization is a **presentation outline for work acc
 - [ ] Explain Week 1–4 progress and Week 5 scope.
 - [ ] Identify next milestone as automated execution and measured reporting.
 
+
+
+## Additional progress — safe execution capability
+
+The independent TestPilot Lab has also gained a limited execution service. For nine code-grounded stories it can run allowlisted, public GET contract probes against the deployed healthcare site (homepage, approved doctors, public availability, and unauthenticated access controls). It reports actual PASS/FAIL/SKIPPED values, timing and JSON export. For other stories it SKIPs rather than altering production appointments, doctor records or administrators. This is **not** yet automatic execution of LLM-generated cases.
+
+The Lab can additionally show measured Static-CI results from GitHub Actions through the healthcare backend's existing report API. Those are independently executed Jest/Vitest tests against an isolated test MongoDB, not model-produced test cases.
+
+**Remaining before a full end-to-end AI demonstration:** Deploy the Lab to a confirmed Render workspace; configure a valid OpenAI API key and private Lab access code; demonstrate a real model response; review and translate AI-generated cases into approved, isolated executable tests. A passing safe HTTP probe must not be misrepresented as complete validation of a generated scenario.

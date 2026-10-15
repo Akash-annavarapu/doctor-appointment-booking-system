@@ -74,6 +74,7 @@ function displaySelectedStory() {
   const criteria = node("p", "criteria",
     "Acceptance criteria: " + selected.acceptanceCriteria.join(" · "));
   meta.append(criteria);
+  showProbeOptions().catch(() => { document.querySelector('#available-probes').textContent = 'Probe catalog unavailable.'; });
 }
 
 function displayInspection(data) {
@@ -163,3 +164,127 @@ exportButton.addEventListener("click", () => {
 
 select.addEventListener("change", displaySelectedStory);
 loadStories();
+
+
+// Actual execution of source-reviewed GET probes; never execute arbitrary LLM code on Render.
+const executeButton = document.querySelector("#execute-button");
+const probeBox = document.querySelector("#available-probes");
+const runSummary = document.querySelector("#run-summary");
+const runResults = document.querySelector("#run-results");
+const executionMessage = document.querySelector("#execution-message");
+const runCount = document.querySelector("#run-count");
+const exportRunButton = document.querySelector("#export-run-button");
+let currentRun = null;
+
+async function showProbeOptions() {
+  probeBox.replaceChildren(node("span", "probe-note", "Loading approved read-only checks…"));
+  const storyId = select.value;
+  const reply = await fetch("/api/probes?storyId=" + encodeURIComponent(storyId));
+  if (!reply.ok) throw new Error("Unable to load approved probes.");
+  const data = await reply.json();
+  if (select.value !== storyId) return;
+  probeBox.replaceChildren();
+  if (!data.checks.length) {
+    probeBox.append(node("p", "probe-note",
+      "This story needs an authenticated or state-changing workflow. Production execution will be SKIPPED; use isolated CI in the next milestone."));
+  }
+  for (const check of data.checks) {
+    const item = node("div", "probe-item");
+    item.append(node("strong", "", check.title));
+    item.append(node("span", "", check.expected));
+    probeBox.append(item);
+  }
+}
+
+executeButton.addEventListener("click", async () => {
+  executeButton.disabled = true;
+  executionMessage.textContent = "Checking the live healthcare application via approved read-only requests…";
+  executionMessage.className = "message";
+  runSummary.replaceChildren();
+  runResults.replaceChildren();
+  exportRunButton.hidden = true;
+  currentRun = null;
+  try {
+    const data = await request("/api/execute", {
+      targetUrl: urlInput.value, storyId: select.value
+    });
+    currentRun = data.run;
+    runCount.textContent = new Date(currentRun.timestamp).toLocaleString();
+    for (const [name, value] of [
+      ["PASSED", currentRun.summary.passed],
+      ["FAILED", currentRun.summary.failed],
+      ["SKIPPED", currentRun.summary.skipped],
+      ["DURATION (ms)", currentRun.summary.durationMs]
+    ]) {
+      const item = node("div", "metric");
+      item.append(node("strong", "", value));
+      item.append(node("span", "", name));
+      runSummary.append(item);
+    }
+    for (const result of currentRun.results) {
+      const item = node("article", "run-card");
+      const title = node("div", "run-card-top");
+      title.append(node("strong", "", result.title));
+      title.append(node("span", "status-chip " + result.status.toLowerCase(), result.status));
+      item.append(title);
+      item.append(node("p", "", result.expected));
+      item.append(node("p", "actual", result.actual));
+      item.append(node("small", "", result.scope + " · " + result.executionTime + "ms"));
+      runResults.append(item);
+    }
+    executionMessage.textContent = "Measured read-only checks completed. These are limited probes, not full AI-case execution.";
+    executionMessage.className = "message success";
+    exportRunButton.hidden = false;
+  } catch (error) {
+    executionMessage.textContent = error.message;
+    executionMessage.className = "message error";
+  } finally { executeButton.disabled = false; }
+});
+
+exportRunButton.addEventListener("click", () => {
+  if (!currentRun) return;
+  const blob = new Blob([JSON.stringify(currentRun, null, 2)], { type: "application/json" });
+  const blobUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = blobUrl;
+  anchor.download = "testpilot-live-" + currentRun.storyId.toLowerCase() + "-" +
+    currentRun.runId.slice(0, 25) + ".json";
+  anchor.click();
+  URL.revokeObjectURL(blobUrl);
+});
+
+
+// Actual static CI evidence, sourced from measured GitHub Actions test reports.
+const loadCiButton = document.querySelector("#load-ci-button");
+const ciMessage = document.querySelector("#ci-message");
+const ciResults = document.querySelector("#ci-results");
+loadCiButton.addEventListener("click", async () => {
+  loadCiButton.disabled = true;
+  ciMessage.textContent = "Loading measured CI results from the healthcare backend…";
+  ciResults.replaceChildren();
+  try {
+    const response = await fetch("/api/ci-results", { cache: "no-store" });
+    const payload = await response.json();
+    if (!response.ok) throw Error(payload.message || "Unable to fetch CI results.");
+    ciMessage.textContent = "Static-CI results come from GitHub Actions. They are not AI-generated test executions.";
+    ciMessage.className = "message success";
+    if (!payload.runs.length) ciResults.append(node("p", "probe-note", "No measured static CI runs are currently stored."));
+    for (const run of payload.runs) {
+      const item = node("article", "run-card");
+      const top = node("div", "run-card-top");
+      top.append(node("strong", "", run.suite));
+      top.append(node("span", "status-chip " + (run.summary.failed ? "fail" : "pass"),
+        run.summary.failed ? "FAILURES PRESENT" : "NO FAILED TESTS"));
+      item.append(top);
+      item.append(node("p", "", "Total: " + run.summary.total + " · Passed: " + run.summary.passed +
+        " · Failed: " + run.summary.failed + " · Skipped: " + run.summary.skipped));
+      item.append(node("small", "", "Run " + run.runId + " · " + run.timestamp + " · " + run.engine));
+      ciResults.append(item);
+    }
+  } catch (error) {
+    ciMessage.textContent = error.message;
+    ciMessage.className = "message error";
+  } finally {
+    loadCiButton.disabled = false;
+  }
+});

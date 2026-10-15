@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const stories = require("./user-stories.json");
+const { checksForStory, executeStoryChecks } = require("./verifiedChecks");
 
 const FRONTEND = "https://doctor-appointment-frontend-9dbs.onrender.com";
 const BACKEND = "https://doctor-appointment-booking-system-u1eq.onrender.com";
@@ -233,18 +234,63 @@ async function handle(req, res) {
   if (req.method === "GET" && pathname === "/api/stories") {
     return json(res, 200, { count: stories.length, stories, targetUrl: FRONTEND + "/" });
   }
+  if (req.method === "GET" && pathname === "/api/ci-results") {
+    try {
+      const response = await fetch(BACKEND + "/api/reports/recent?limit=6", {
+        method: "GET", redirect: "error", signal: AbortSignal.timeout(30000),
+        headers: { Accept: "application/json" }
+      });
+      if (!response.ok) throw new ApiError(502, "Verified CI reports are unavailable.");
+      const payload = await response.json();
+      if (!payload.success || !Array.isArray(payload.runs)) {
+        throw new ApiError(502, "Verified CI response structure is invalid.");
+      }
+      const runs = payload.runs.filter(r => r.engine === "Static-CI" &&
+        r.summary && typeof r.summary === "object").slice(0, 6).map(r => ({
+          runId: String(r.runId || "").slice(0, 128),
+          timestamp: r.timestamp, suite: String(r.suite || "").slice(0, 90),
+          engine: "Static-CI",
+          summary: {
+            total: Number(r.summary.total) || 0,
+            passed: Number(r.summary.passed) || 0,
+            failed: Number(r.summary.failed) || 0,
+            skipped: Number(r.summary.skipped) || 0,
+            durationMs: Number(r.summary.durationMs) || 0
+          }
+        }));
+      return json(res, 200, { success: true, runs,
+        statement: "Measured existing Jest/Vitest CI runs. Not AI-generated test execution." });
+    } catch {
+      return json(res, 502, { success: false, message: "Verified CI reporting is currently unavailable." });
+    }
+  }
+  if (req.method === "GET" && pathname === "/api/probes") {
+    const storyId = new URL(req.url, "http://localhost").searchParams.get("storyId");
+    if (!stories.some(s => s.id === storyId)) return json(res, 400, { success: false, message: "Unknown user story." });
+    return json(res, 200, { storyId, checks: checksForStory(storyId),
+      scope: "Public read-only probes. Not proof of complete feature or AI-case execution." });
+  }
   if (req.method === "GET" && assetPaths[pathname]) {
     const [filename, mime] = assetPaths[pathname];
     res.writeHead(200, { "Content-Type": mime });
     return res.end(fs.readFileSync(path.join(__dirname, "public", filename)));
   }
-  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate")) {
+  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate" || pathname === "/api/execute")) {
     try {
       const payload = await readBody(req);
       const targetUrl = checkTarget(payload.targetUrl);
       if (pathname === "/api/inspect") {
         const inspection = await inspectSut(targetUrl);
         return json(res, 200, { success: true, inspection });
+      }
+      if (pathname === "/api/execute") {
+        if (!stories.some(item => item.id === payload.storyId)) {
+          throw new ApiError(400, "Select a documented story before executing.");
+        }
+        takeRateLimit(req.socket.remoteAddress || "unknown");
+        // Each probe is a fixed read-only GET to an allowlisted public host; no model code runs.
+        const run = await executeStoryChecks(payload.storyId);
+        return json(res, 200, { success: true, targetUrl, run });
       }
       const story = getStory(payload);
       checkAccessCode(payload.accessCode);
