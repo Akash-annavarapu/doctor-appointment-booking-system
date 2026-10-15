@@ -252,3 +252,39 @@ exportRunButton.addEventListener("click", () => {
   anchor.click();
   URL.revokeObjectURL(blobUrl);
 });
+
+
+// Actual static CI evidence, sourced from measured GitHub Actions test reports.
+const loadCiButton = document.querySelector("#load-ci-button");
+const ciMessage = document.querySelector("#ci-message");
+const ciResults = document.querySelector("#ci-results");
+loadCiButton.addEventListener("click", async () => {
+  loadCiButton.disabled = true;
+  ciMessage.textContent = "Loading measured CI results from the healthcare backend…";
+  ciResults.replaceChildren();
+  try {
+    const response = await fetch("/api/ci-results", { cache: "no-store" });
+    const payload = await response.json();
+    if (!response.ok) throw Error(payload.message || "Unable to fetch CI results.");
+    ciMessage.textContent = "Static-CI results come from GitHub Actions. They are not AI-generated test executions.";
+    ciMessage.className = "message success";
+    if (!payload.runs.length) ciResults.append(node("p", "probe-note", "No measured static CI runs are currently stored."));
+    for (const run of payload.runs) {
+      const item = node("article", "run-card");
+      const top = node("div", "run-card-top");
+      top.append(node("strong", "", run.suite));
+      top.append(node("span", "status-chip " + (run.summary.failed ? "fail" : "pass"),
+        run.summary.failed ? "FAILURES PRESENT" : "NO FAILED TESTS"));
+      item.append(top);
+      item.append(node("p", "", "Total: " + run.summary.total + " · Passed: " + run.summary.passed +
+        " · Failed: " + run.summary.failed + " · Skipped: " + run.summary.skipped));
+      item.append(node("small", "", "Run " + run.runId + " · " + run.timestamp + " · " + run.engine));
+      ciResults.append(item);
+    }
+  } catch (error) {
+    ciMessage.textContent = error.message;
+    ciMessage.className = "message error";
+  } finally {
+    loadCiButton.disabled = false;
+  }
+});
