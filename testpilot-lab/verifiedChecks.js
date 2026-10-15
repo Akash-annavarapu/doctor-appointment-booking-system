@@ -81,8 +81,11 @@ async function runCheck(check, fetchImpl) {
         }
         if (check.id === "approved-doctor-detail") {
           const detail = await request(BACKEND + "/api/v1/doctor/" + candidates[0]._id, fetchImpl);
-          status = detail.status === 200 ? "PASS" : "FAIL";
-          actual = "Public approved-doctor detail returned HTTP " + detail.status;
+          const payload = detail.status === 200 ? await detail.json() : null;
+          status = detail.status === 200 && payload?.success &&
+            String(payload.doctor?._id) === String(candidates[0]._id) ? "PASS" : "FAIL";
+          actual = "Public approved-doctor detail HTTP " + detail.status +
+            "; matching doctor response " + (status === "PASS" ? "verified" : "not verified");
           break;
         }
         let fixture;
