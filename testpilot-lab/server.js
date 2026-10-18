@@ -75,45 +75,74 @@ function checkAccessCode(provided, expected = process.env.LAB_ACCESS_CODE) {
 }
 
 async function remoteRead(url, fetchImpl = fetch) {
-  let response;
-  try {
-    response = await fetchImpl(url, {
-      redirect: "error",
-      headers: { Accept: "text/html, application/json" },
-      signal: AbortSignal.timeout(35000)
-    });
-  } catch {
-    throw new ApiError(502, "Could not inspect the approved healthcare deployment.");
+  const label = new URL(url).origin === FRONTEND ? "Healthcare frontend" : "Healthcare doctor API";
+  let lastStatus;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetchImpl(url, {
+        redirect: "error",
+        headers: { Accept: "text/html, application/json" },
+        signal: AbortSignal.timeout(25000)
+      });
+      if (response.ok) {
+        const raw = await response.text();
+        if (raw.length > 300000) throw new ApiError(502, label + " response exceeded inspection limit.");
+        return raw;
+      }
+      lastStatus = response.status;
+      if (![502, 503, 504].includes(lastStatus)) {
+        throw new ApiError(502, label + " responded with HTTP " + lastStatus);
+      }
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      if (attempt === 2) throw new ApiError(502, label + " could not be reached after retries.");
+    }
+    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 750 * (attempt + 1)));
   }
-  if (!response.ok) throw new ApiError(502, "Healthcare deployment responded with HTTP " + response.status);
-  const raw = await response.text();
-  if (raw.length > 300000) throw new ApiError(502, "Healthcare response exceeded inspection limit.");
-  return raw;
+  throw new ApiError(502, label + " responded with HTTP " + lastStatus + " after retries.");
 }
 
 async function inspectSut(targetUrl, fetchImpl = fetch) {
   const target = checkTarget(targetUrl);
-  const [html, doctorJson] = await Promise.all([
+  const [pageResult, doctorsResult] = await Promise.allSettled([
     remoteRead(target, fetchImpl),
     remoteRead(BACKEND + "/api/v1/doctor/all", fetchImpl)
   ]);
-  const title = html.match(/<title[^>]*>([^<]{1,150})<\/title>/i)?.[1] || "Healthcare application";
-  const rootPresent = /id=["']root["']/.test(html);
-  let payload;
-  try { payload = JSON.parse(doctorJson); }
-  catch { throw new ApiError(502, "Live doctor API did not return JSON."); }
-  if (!payload.success || !Array.isArray(payload.doctors)) {
-    throw new ApiError(502, "Live doctor API returned an unexpected schema.");
+  const html = pageResult.status === "fulfilled" ? pageResult.value : null;
+  const title = html?.match(/<title[^>]*>([^<]{1,150})<\/title>/i)?.[1] ||
+    "Healthcare application (title unverified)";
+  const rootPresent = typeof html === "string" && /id=["']root["']/.test(html);
+  let doctors = null;
+  if (doctorsResult.status === "fulfilled") {
+    try {
+      const payload = JSON.parse(doctorsResult.value);
+      if (payload.success && Array.isArray(payload.doctors)) doctors = payload.doctors;
+    } catch { /* Unverified doctor catalog is not treated as an empty catalog. */ }
   }
-  // Only aggregate public fields: never send doctor names, phone numbers, patient data, documents, or JWTs to an LLM.
-  const specialties = [...new Set(payload.doctors.map(d => d.specialization)
-    .filter(x => typeof x === "string" && x.length <= 70))].slice(0, 25);
+  if (!rootPresent && !doctors) {
+    throw new ApiError(502, "Healthcare frontend and doctor API could not both be verified. Check Render and try again.");
+  }
+  const doctorVerified = Array.isArray(doctors);
+  const specialties = doctorVerified
+    ? [...new Set(doctors.map(d => d.specialization)
+      .filter(x => typeof x === "string" && x.length <= 70))].slice(0, 25)
+    : [];
+  const full = rootPresent && doctorVerified;
   return {
     inspectedAt: new Date().toISOString(),
     inspectedUrl: target,
+    inspectionStatus: full ? "FULL" : "PARTIAL",
     page: { title, reactRootDetected: rootPresent },
-    publicDoctorCatalog: { approvedCount: payload.doctors.length, specialties },
-    evidenceScope: "Public HTML and read-only doctor catalog only. No authenticated workflows were crawled."
+    publicDoctorCatalog: {
+      available: doctorVerified,
+      approvedCount: doctorVerified ? doctors.length : null,
+      specialties
+    },
+    evidenceScope: full
+      ? "Verified public React HTML and approved doctor catalog. No authenticated workflows were crawled."
+      : "PARTIAL: " + (!rootPresent ? "Healthcare frontend React mount unverified. " : "") +
+        (!doctorVerified ? "Public doctor catalog unavailable or invalid. " : "") +
+        "Generated cases are based on documented routes and acceptance criteria only. Unavailable live endpoints are NOT verified. No authenticated workflows were crawled."
   };
 }
 
