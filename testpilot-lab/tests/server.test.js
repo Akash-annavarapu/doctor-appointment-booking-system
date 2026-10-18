@@ -140,3 +140,43 @@ test("the separate lab serves its own health and documented story catalog", asyn
     assert.equal(catalog.count, 25);
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
+
+
+test("provider 429 error codes distinguish credits, spend limits and request rate without leaking details", async () => {
+  const previous = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "mock-secret-key-not-real";
+  const story = getStory({ storyId: "US-005", storyText:
+    "As a visitor, I want to browse approved doctors." });
+  const inspection = { page: { title: "Healthcare Demo" }, publicDoctorCatalog: { approvedCount: 1 } };
+  const makeReply = (error, status = 429) => new Response(JSON.stringify({ error: {
+    ...error, message: "DO NOT DISPLAY PROVIDER ERROR CONTENT mock-secret-key-not-real"
+  } }), { status, headers: { "content-type": "application/json" } });
+  try {
+    const examples = [
+      [{ code: "credit_balance_exhausted", type: "insufficient_quota" }, /API credits are exhausted/],
+      [{ code: "project_spend_limit_exceeded" }, /spending limit reached/],
+      [{ code: "organization_spend_limit_exceeded" }, /spending limit reached/],
+      [{ code: "organization_usage_limit_exceeded" }, /organization usage limit reached/],
+      [{ type: "insufficient_quota" }, /quota or billing limit reached/],
+      [{ code: "rate_limit_exceeded" }, /rate limit reached/],
+      [{ code: "unrecognized_error" }, /HTTP 429.*Check API credits/]
+    ];
+    for (const [providerError, expectedMessage] of examples) {
+      await assert.rejects(
+        generateCases({ story, inspection, fetchImpl: async () => makeReply(providerError) }),
+        err => {
+          assert.equal(err.status, 502);
+          assert.match(err.message, expectedMessage);
+          assert.doesNotMatch(err.message, /DO NOT DISPLAY|mock-secret-key/);
+          return true;
+        }
+      );
+    }
+    await assert.rejects(generateCases({ story, inspection,
+      fetchImpl: async () => makeReply({ code: "invalid_api_key" }, 401)
+    }), /rejected the API credentials or permissions/);
+  } finally {
+    if (previous === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previous;
+  }
+});
