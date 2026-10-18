@@ -80,9 +80,14 @@ function displaySelectedStory() {
 function displayInspection(data) {
   const info = data.inspection;
   inspectionBox.replaceChildren();
-  inspectionBox.append(node("strong", "", "Live URL verified · " + info.page.title));
-  inspectionBox.append(node("p", "", "Public doctor records: " + info.publicDoctorCatalog.approvedCount +
-    " · Specialties: " + info.publicDoctorCatalog.specialties.length));
+  const partial = info.inspectionStatus === "PARTIAL";
+  inspectionBox.append(node("strong", "",
+    (partial ? "Partial inspection" : "Live URL verified") + " · " + info.page.title));
+  const catalog = info.publicDoctorCatalog;
+  inspectionBox.append(node("p", "", catalog.available === false || catalog.approvedCount === null
+    ? "Doctor API unavailable: no current doctor count was verified."
+    : "Public doctor records: " + catalog.approvedCount +
+      " · Specialties: " + catalog.specialties.length));
   inspectionBox.append(node("small", "", info.evidenceScope));
 }
 
@@ -130,7 +135,10 @@ function renderResult(data) {
     }
     caseBox.append(card);
   }
-  showMessage("AI candidates generated for " + data.storyId + ". Review before automation.");
+  showMessage("AI candidates generated for " + data.storyId + ". " +
+    (data.inspection?.inspectionStatus === "PARTIAL"
+      ? "Only partial healthcare evidence was available; review the assumptions carefully. "
+      : "") + "All cases are NOT RUN until independently verified.");
 }
 
 function setBusy(active, action) {
@@ -144,7 +152,9 @@ inspectButton.addEventListener("click", async () => {
   try {
     const result = await request("/api/inspect", { targetUrl: urlInput.value });
     displayInspection(result);
-    showMessage("Live URL inspection completed using public read-only requests.");
+    showMessage(result.inspection?.inspectionStatus === "PARTIAL"
+      ? "Partial live inspection: one upstream service could not be verified. Test cases will be suggestions only."
+      : "Live URL inspection completed using public read-only requests.");
   } catch (error) { showMessage(error.message, true); }
   finally { setBusy(false); }
 });
