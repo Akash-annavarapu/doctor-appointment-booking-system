@@ -159,3 +159,42 @@ test("Gemini free-tier rate limits are explained without exposing Google error d
     if (old[1] === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = old[1];
   }
 });
+
+
+test("readiness diagnoses missing Gemini variables by name without exposing values", async () => {
+  const old = [process.env.AI_PROVIDER, process.env.GEMINI_API_KEY, process.env.LAB_ACCESS_CODE];
+  process.env.AI_PROVIDER = "gemini";
+  const server = http.createServer((req, res) => handle(req, res));
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  try {
+    async function check() {
+      const response = await fetch("http://127.0.0.1:" + server.address().port + "/api/capabilities");
+      assert.equal(response.status, 200);
+      return response.json();
+    }
+    delete process.env.GEMINI_API_KEY;
+    process.env.LAB_ACCESS_CODE = "synthetic-test-lab-code-long-enough";
+    let status = await check();
+    assert.equal(status.aiGenerationReady, false);
+    assert.deepEqual(status.missingSettings, ["GEMINI_API_KEY"]);
+    assert.equal(JSON.stringify(status).includes("synthetic-test-lab-code"), false);
+
+    process.env.GEMINI_API_KEY = "synthetic-gemini-key-for-tests";
+    delete process.env.LAB_ACCESS_CODE;
+    status = await check();
+    assert.deepEqual(status.missingSettings, ["LAB_ACCESS_CODE"]);
+    assert.equal(JSON.stringify(status).includes("synthetic-gemini-key"), false);
+
+    process.env.LAB_ACCESS_CODE = "synthetic-test-lab-code-long-enough";
+    status = await check();
+    assert.equal(status.aiGenerationReady, true);
+    assert.deepEqual(status.missingSettings, []);
+    assert.equal(JSON.stringify(status).includes("synthetic-gemini-key"), false);
+  } finally {
+    for (const [i, name] of ["AI_PROVIDER", "GEMINI_API_KEY", "LAB_ACCESS_CODE"].entries()) {
+      if (old[i] === undefined) delete process.env[name];
+      else process.env[name] = old[i];
+    }
+    await new Promise(resolve => server.close(resolve));
+  }
+});

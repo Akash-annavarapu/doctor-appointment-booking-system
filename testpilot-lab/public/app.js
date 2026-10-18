@@ -189,11 +189,19 @@ async function loadAiReadiness() {
     if (typeof result.aiGenerationReady !== "boolean") throw Error("Invalid readiness response");
     status.classList.toggle("ready", result.aiGenerationReady);
     const provider = result.aiProvider === "Google Gemini" ? "Google Gemini" : "OpenAI";
-    status.textContent = result.aiGenerationReady
-      ? provider + " is configured. Enter your Lab access code above and generate test cases."
-      : provider === "Google Gemini"
-        ? "Free Gemini AI needs a one-time setup: create a free Google AI Studio key and set GEMINI_API_KEY in Render. No payment card needed for eligible free-tier use. Inspection and verified checks still work."
-        : "OpenAI is not configured. You can still inspect the app and run read-only checks.";
+    if (result.aiGenerationReady) {
+      status.textContent = provider + " is configured. Enter your Lab access code above and generate test cases.";
+    } else {
+      const knownNames = provider === "Google Gemini"
+        ? ["GEMINI_API_KEY", "LAB_ACCESS_CODE"]
+        : ["OPENAI_API_KEY", "LAB_ACCESS_CODE"];
+      const missing = Array.isArray(result.missingSettings)
+        ? result.missingSettings.filter(name => knownNames.includes(name)) : [];
+      status.textContent = missing.length
+        ? "Render is missing or has an invalid setting: " + missing.join(", ") +
+          ". Open TestPilot Lab → Environment, correct it, then Save, deploy. No secret values are shown."
+        : "AI setup is incomplete. Check the server environment variables in Render.";
+    }
   } catch {
     status.classList.remove("ready");
     status.textContent = "AI configuration status is unavailable. You can still inspect and run safe checks.";

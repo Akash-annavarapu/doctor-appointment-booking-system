@@ -58,13 +58,17 @@ jobs:
           await verify('AI setup readiness (no secrets exposed)', async () => {
             const status = await request('/api/capabilities');
             if (!status.success || typeof status.aiGenerationReady !== 'boolean' ||
+                !Array.isArray(status.missingSettings) ||
+                status.aiGenerationReady !== (status.missingSettings.length === 0) ||
+                status.missingSettings.some(name => !['GEMINI_API_KEY', 'LAB_ACCESS_CODE'].includes(name)) ||
                 status.aiProvider !== 'Google Gemini' ||
                 status.storyCount !== 25 ||
                 status.executionMode !== 'AUDITED_READ_ONLY_GET_PROBES_ONLY') {
               throw Error('Invalid AI readiness contract');
             }
             if ('apiKey' in status || 'accessCode' in status) throw Error('Secrets leaked');
-            return status.aiGenerationReady ? 'guarded generator is configured' : 'awaiting private key and access code';
+            return status.aiGenerationReady ? 'guarded generator is configured' :
+              'missing or invalid: ' + status.missingSettings.join(', ');
           });
           await verify('Lab homepage', async () => {
             const page = await request('/');

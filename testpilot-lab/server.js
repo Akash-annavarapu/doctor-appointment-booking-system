@@ -357,11 +357,16 @@ async function handle(req, res) {
   // Public readiness state contains no credentials, only availability of guarded features.
   if (req.method === "GET" && pathname === "/api/capabilities") {
     const { provider, key } = activeAiConfig();
-    const aiGenerationReady = Boolean(key &&
-      process.env.LAB_ACCESS_CODE && process.env.LAB_ACCESS_CODE.length >= 16);
+    const apiKeyName = provider === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY";
+    const missingSettings = [];
+    if (!key || !key.trim()) missingSettings.push(apiKeyName);
+    if (typeof process.env.LAB_ACCESS_CODE !== "string" ||
+        process.env.LAB_ACCESS_CODE.length < 16) missingSettings.push("LAB_ACCESS_CODE");
+    const aiGenerationReady = missingSettings.length === 0;
     return json(res, 200, {
       success: true,
       aiGenerationReady,
+      missingSettings,
       aiProvider: provider === "gemini" ? "Google Gemini" : "OpenAI",
       storyCount: stories.length,
       executionMode: "AUDITED_READ_ONLY_GET_PROBES_ONLY",
