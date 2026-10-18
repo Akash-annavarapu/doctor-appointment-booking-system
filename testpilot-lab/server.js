@@ -11,9 +11,14 @@ const FRONTEND = "https://doctor-appointment-frontend-9dbs.onrender.com";
 const BACKEND = "https://doctor-appointment-booking-system-u1eq.onrender.com";
 const allowedPaths = new Set(["/", "/test-cases"]);
 const hitTimes = new Map();
+const RATE_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMITS = Object.freeze({ generate: 4, execute: 20, "execute-generated": 12 });
 
 class ApiError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, retryAfterSeconds) {
+    super(message); this.status = status;
+    if (retryAfterSeconds !== undefined) this.retryAfterSeconds = retryAfterSeconds;
+  }
 }
 
 function checkTarget(raw) {
@@ -42,13 +47,21 @@ function getStory(payload) {
   return { ...selected, story: text.trim() };
 }
 
-function takeRateLimit(ip) {
-  const now = Date.now();
+function takeRateLimit(ip, action, now = Date.now()) {
+  const max = RATE_LIMITS[action];
+  if (!max) throw new Error("Unknown rate-limited action.");
+  const key = action + ":" + ip;
   if (hitTimes.size > 500) hitTimes.clear();
-  const previous = (hitTimes.get(ip) || []).filter(time => now - time < 15 * 60 * 1000);
-  if (previous.length >= 4) throw new ApiError(429, "Generation limit reached; retry later.");
+  const previous = (hitTimes.get(key) || []).filter(time => now - time < RATE_WINDOW_MS);
+  if (previous.length >= max) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((previous[0] + RATE_WINDOW_MS - now) / 1000));
+    const minutes = Math.ceil(retryAfterSeconds / 60);
+    const name = action === "generate" ? "AI generation" : "Read-only test execution";
+    throw new ApiError(429, name + " limit reached. Try again in " + minutes +
+      " minute" + (minutes === 1 ? "" : "s") + ".", retryAfterSeconds);
+  }
   previous.push(now);
-  hitTimes.set(ip, previous);
+  hitTimes.set(key, previous);
 }
 
 function checkAccessCode(provided, expected = process.env.LAB_ACCESS_CODE) {
@@ -308,7 +321,7 @@ async function handle(req, res) {
       if (pathname === "/api/execute-generated") {
         if (!stories.some(item => item.id === payload.storyId)) throw new ApiError(400, "Unknown story.");
         checkAccessCode(payload.accessCode);
-        takeRateLimit(req.socket.remoteAddress || "unknown");
+        takeRateLimit(req.socket.remoteAddress || "unknown", "execute-generated");
         try {
           const run = await executeGeneratedCases(payload.storyId, targetUrl, payload.cases,
             payload.selectedIds, payload.receipt);
@@ -321,14 +334,14 @@ async function handle(req, res) {
         if (!stories.some(item => item.id === payload.storyId)) {
           throw new ApiError(400, "Select a documented story before executing.");
         }
-        takeRateLimit(req.socket.remoteAddress || "unknown");
+        takeRateLimit(req.socket.remoteAddress || "unknown", "execute");
         // Each probe is a fixed read-only GET to an allowlisted public host; no model code runs.
         const run = await executeStoryChecks(payload.storyId);
         return json(res, 200, { success: true, targetUrl, run });
       }
       const story = getStory(payload);
       checkAccessCode(payload.accessCode);
-      takeRateLimit(req.socket.remoteAddress || "unknown");
+      takeRateLimit(req.socket.remoteAddress || "unknown", "generate");
       if (!process.env.OPENAI_API_KEY) {
         throw new ApiError(503, "AI generation is not yet configured on this lab. Inspection works without an API key.");
       }
@@ -339,8 +352,14 @@ async function handle(req, res) {
         receipt: issueReceipt(story.id, targetUrl, cases) });
     } catch (error) {
       if (!(error instanceof ApiError)) console.error("Lab request failed:", error.message);
+      if (error instanceof ApiError && error.retryAfterSeconds) {
+        res.setHeader("Retry-After", String(error.retryAfterSeconds));
+      }
       return json(res, error instanceof ApiError ? error.status : 500, {
-        success: false, message: error instanceof ApiError ? error.message : "Unexpected server error."
+        success: false,
+        message: error instanceof ApiError ? error.message : "Unexpected server error.",
+        ...(error instanceof ApiError && error.retryAfterSeconds
+          ? { retryAfterSeconds: error.retryAfterSeconds } : {})
       });
     }
   }
@@ -359,4 +378,4 @@ if (require.main === module) {
 }
 
 module.exports = { checkTarget, getStory, inspectSut, validateGenerated, checkAccessCode,
-  generateCases, handle, FRONTEND, BACKEND };
+  generateCases, takeRateLimit, handle, FRONTEND, BACKEND };
