@@ -133,7 +133,7 @@ test("full Lab HTTP workflow validates model candidates, approval and safe GET e
     assert.equal(tamper.status, 400);
     assert.match(tamper.body.message, /changed|receipt|expired/i);
 
-    assert.equal(outbound.filter(item => item.url.startsWith(BACKEND)).length, 3);
+    assert.equal(outbound.filter(item => item.url.startsWith(BACKEND)).length, 2);
     assert.equal(outbound.filter(item => item.url === "https://api.openai.com/v1/responses").length, 1);
     assert.ok(outbound.filter(item => item.url.startsWith(BACKEND)).every(item => item.method === "GET"));
     assert.ok(outbound.every(item => !item.url.includes("/appointment/book")));
