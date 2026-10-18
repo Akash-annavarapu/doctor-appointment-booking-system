@@ -43,11 +43,11 @@ The following week-by-week organization is a **presentation outline for work acc
 | 20–25 role-based stories | Prepared: 25 stories, 15 use cases | docs/WEEK5_USER_STORIES.md; testpilot-lab/user-stories.json |
 | Week 1–4 and Week 5 progress report | Prepared | This document |
 | Show deployment URL and functionality | Existing deployment available; verify live demonstration | Healthcare homepage; public doctor listing |
-| Separate testing app prototype | Implemented in independent testpilot-lab folder; deployment still required | Lab server.js and UI |
+| Separate testing app prototype | Deployed independently on Render; URL and user-story inputs implemented | https://testpilot-lab.onrender.com/; Lab server.js and UI |
 | Enter a user story and SUT URL | Implemented in Lab UI | GET /api/stories; URL and story inputs |
 | Safe live SUT inspection | Implemented against allowlisted public paths | POST /api/inspect; no authenticated operations |
 | Actual LLM test-case generation | Code prepared, **not operational until OpenAI API key and lab access code are configured** | POST /api/generate |
-| Execute generated tests and report PASS/FAIL | **Planned for third milestone** | No executed AI-generated test results are claimed |
+| Execute generated tests and report PASS/FAIL | Partially implemented: approved model cases may be bound to **audited read-only GET checks**, if configured; full healthcare workflows are not supported | testpilot-lab/generatedCaseRunner.js; isolated CI tests |
 
 ## Lab architecture and workflow
 
@@ -69,7 +69,7 @@ The following week-by-week organization is a **presentation outline for work acc
 
 ## Known gaps, prerequisites and limitations
 
-- Deploy TestPilot Lab as a second Render web service, not as a replacement of the original healthcare app.
+- TestPilot Lab is deployed as a **second** Render web service at https://testpilot-lab.onrender.com/; verify the latest version is live before demonstrating it.
 - An OpenAI API key and a separate Lab access code must be securely supplied to that new service for live generation; no secrets belong in Git or user-browser code.
 - Inspecting public HTML and doctor endpoints is **not** equivalent to an autonomous browser understanding every login-protected feature. Feature knowledge is primarily grounded in audited code/use cases.
 - The documented 25 user stories are not proof that the user journey has been tested end-to-end; additional fixtures and access permissions may be required.
@@ -101,4 +101,12 @@ The independent TestPilot Lab has also gained a limited execution service. For n
 
 The Lab can additionally show measured Static-CI results from GitHub Actions through the healthcare backend's existing report API. Those are independently executed Jest/Vitest tests against an isolated test MongoDB, not model-produced test cases.
 
-**Remaining before a full end-to-end AI demonstration:** Deploy the Lab to a confirmed Render workspace; configure a valid OpenAI API key and private Lab access code; demonstrate a real model response; review and translate AI-generated cases into approved, isolated executable tests. A passing safe HTTP probe must not be misrepresented as complete validation of a generated scenario.
+**Remaining before a full end-to-end AI demonstration:** The separate Lab is deployed. Configure a valid OpenAI API key and private Lab access code in its Render environment, demonstrate a real model response, review generated cases and link executable scenarios to approved, isolated CI fixtures. The optional bound AI-case runner currently covers only source-reviewed read-only GET probes; passing one does **not** prove the entire generated story or a booking workflow passed.
+
+
+## Verified deployment refresh — 19 October 2026
+
+- The standalone Lab had been serving the older GitHub revision `3f94d0fbc5427f1ec86c20a294e33ac01808bb10`. It was redeployed on Render to `5cc1fc3b2ca405556161ebdf385ca1a1008ce284`; Render returned **live** for the newer revision.
+- Its latest UI includes explicit case review/approval and bounded execution of safe, source-reviewed GET checks associated with AI cases. It does **not** execute arbitrary model-generated scripts or production booking/registration mutations.
+- The OpenAI generator needs **both** `OPENAI_API_KEY` and `LAB_ACCESS_CODE` configured privately; do not assert a live model response without actually running one.
+- See [the current instructor review checklist](KAVI_SIR_CURRENT_MILESTONE_CHECKLIST.md), which separates confirmed progress from requirements needing clarification.

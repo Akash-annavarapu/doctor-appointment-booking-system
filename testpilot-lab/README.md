@@ -12,7 +12,7 @@
 2. Select from 25 documented user stories (or edit the story text). Stories contain role, use case, source-code anchor, API path and acceptance criteria.
 3. Click Inspect live application to read the public HTML and approved-doctor catalog from the exact approved hosts.
 4. When configured with OpenAI, use Generate AI test cases. Model receives the story, route and safe public inspection evidence and returns 4–8 reviewable test cases.
-5. Export JSON for review. Every case is marked NOT_RUN; this app does not execute tests.
+5. Export JSON for review. Generated cases initially remain NOT_RUN. The optional approval flow may execute only **source-reviewed read-only GET probes linked to selected AI cases**; other cases remain SKIPPED until an isolated test environment is available.
 
 Only the allowlisted healthcare deployment can be inspected: arbitrary domain crawling and localhost access are blocked to prevent SSRF. Public HTML cannot prove the behavior of authenticated booking screens.
 
@@ -51,7 +51,7 @@ The generated cases include id, title, type, priority, preconditions, steps, tes
 ## Roadmap
 
 - Week 5: user stories, source traceability, progress documentation and separate Lab UI.
-- Next: configure live OpenAI key, demonstrate a generated test-case set and review output.
+- Next: configure the OpenAI key and Lab access code privately, verify a genuine generated set and human review, then extend **isolated** execution for state-changing workflows.
 - Phase 3: execute approved tests in isolated CI against synthetic fixtures/test database, collect measured results and show PASS/FAIL. Never run LLM-generated code directly on production Render or create real appointments as a smoke test.
 
 Further reading: docs/WEEK5_USER_STORIES.md and docs/WEEK5_PROGRESS_REPORT.md.
@@ -84,3 +84,14 @@ With private OPENAI_API_KEY and LAB_ACCESS_CODE configured, /api/generate return
 POST /api/execute-generated accepts targetUrl, storyId, accessCode, receipt, the unchanged cases array, and selectedIds such as ['AI-001']. The generation receipt is not a substitute for authentication.
 
 **Still needed for full milestone 3:** A disposable staging deployment with synthetic patient/doctor/admin fixtures, dedicated test MongoDB, reviewed test oracles and a runner for state-changing or UI workflows. The production deployment must not be used for these tests. Live LLM generation also still requires the user's valid paid OpenAI API key configured in Render.
+
+
+## Instructor-ready status (19 October 2026)
+
+**Live Lab deployed on Render:** latest code containing approved generated-case read-only execution was redeployed successfully. The Lab is independent of the healthcare application: it accepts an allowlisted healthcare URL plus a source-grounded user story and supports inspection and safe public verification without a model key.
+
+**AI generation requires operator setup:** In Render's *testpilot-lab* service → **Environment**, set `OPENAI_API_KEY` and a randomly generated `LAB_ACCESS_CODE` (at least 16 characters). Do not commit these values or put an API key into the frontend. The Lab input form accepts only the **Lab access code**, never an OpenAI key. After saving, verify actual generation with a documented user story before claiming end-to-end AI functionality. OpenAI API usage may be billable.
+
+**Execution boundary:** Generated cases are suggestions requiring review; only explicitly approved cases mapped to audited read-only GET checks can be partially executed on the public healthcare service. No generated mutation code, real credentials, patient data, or booking writes are executed on production.
+
+See [instructor checklist](../docs/KAVI_SIR_CURRENT_MILESTONE_CHECKLIST.md).
