@@ -179,6 +179,25 @@ exportButton.addEventListener("click", () => {
 select.addEventListener("change", displaySelectedStory);
 loadStories();
 
+// Configuration indicators are safe booleans only; never request or display secret values.
+async function loadAiReadiness() {
+  const status = document.querySelector("#ai-setup-status");
+  try {
+    const response = await fetch("/api/capabilities", { cache: "no-store" });
+    if (!response.ok) throw Error("Service readiness cannot be checked right now.");
+    const result = await response.json();
+    if (typeof result.aiGenerationReady !== "boolean") throw Error("Invalid readiness response");
+    status.classList.toggle("ready", result.aiGenerationReady);
+    status.textContent = result.aiGenerationReady
+      ? "OpenAI generation is configured. Enter your private Lab access code above to generate cases."
+      : "AI generation needs one-time private setup in Render. You can already inspect the app, run read-only checks and view CI results.";
+  } catch {
+    status.classList.remove("ready");
+    status.textContent = "AI configuration status is unavailable. You can still inspect and run safe checks.";
+  }
+}
+loadAiReadiness();
+
 
 // Actual execution of source-reviewed GET probes; never execute arbitrary LLM code on Render.
 const executeButton = document.querySelector("#execute-button");

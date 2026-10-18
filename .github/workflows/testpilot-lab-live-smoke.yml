@@ -55,6 +55,16 @@ jobs:
             if (!h.ok || h.service !== 'testpilot-lab') throw Error('Invalid health response');
             return 'active service';
           });
+          await verify('AI setup readiness (no secrets exposed)', async () => {
+            const status = await request('/api/capabilities');
+            if (!status.success || typeof status.aiGenerationReady !== 'boolean' ||
+                status.storyCount !== 25 ||
+                status.executionMode !== 'AUDITED_READ_ONLY_GET_PROBES_ONLY') {
+              throw Error('Invalid AI readiness contract');
+            }
+            if ('apiKey' in status || 'accessCode' in status) throw Error('Secrets leaked');
+            return status.aiGenerationReady ? 'guarded generator is configured' : 'awaiting private key and access code';
+          });
           await verify('Lab homepage', async () => {
             const page = await request('/');
             if (!page.includes('TestPilot') || !page.includes('User story')) throw Error('Missing Lab UI');

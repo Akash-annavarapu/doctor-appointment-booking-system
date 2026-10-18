@@ -241,6 +241,18 @@ async function handle(req, res) {
   res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
   const pathname = new URL(req.url, "http://localhost").pathname;
   if (req.method === "GET" && pathname === "/healthz") return json(res, 200, { ok: true, service: "testpilot-lab" });
+  // Public readiness state contains no credentials, only availability of guarded features.
+  if (req.method === "GET" && pathname === "/api/capabilities") {
+    const aiGenerationReady = Boolean(process.env.OPENAI_API_KEY &&
+      process.env.LAB_ACCESS_CODE && process.env.LAB_ACCESS_CODE.length >= 16);
+    return json(res, 200, {
+      success: true,
+      aiGenerationReady,
+      storyCount: stories.length,
+      executionMode: "AUDITED_READ_ONLY_GET_PROBES_ONLY",
+      warning: "Configured readiness does not prove a live provider request succeeded."
+    });
+  }
   if (req.method === "GET" && pathname === "/api/stories") {
     return json(res, 200, { count: stories.length, stories, targetUrl: FRONTEND + "/" });
   }

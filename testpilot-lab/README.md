@@ -95,3 +95,18 @@ POST /api/execute-generated accepts targetUrl, storyId, accessCode, receipt, the
 **Execution boundary:** Generated cases are suggestions requiring review; only explicitly approved cases mapped to audited read-only GET checks can be partially executed on the public healthcare service. No generated mutation code, real credentials, patient data, or booking writes are executed on production.
 
 See [instructor checklist](../docs/KAVI_SIR_CURRENT_MILESTONE_CHECKLIST.md).
+
+## Checking AI readiness without exposing private credentials
+
+The home page displays a nonsecret readiness notice. `GET /api/capabilities` returns only a Boolean `aiGenerationReady`, the count of supported source-grounded stories, and the restricted read-only execution scope. **Configured** does not mean that a live OpenAI generation has been verified.
+
+To enable genuine LLM generation:
+
+1. Create your own OpenAI Platform API key with appropriate project permissions and API billing. **ChatGPT subscriptions are billed separately from OpenAI API usage.**
+2. Open the **testpilot-lab** Render service → **Environment** and set `OPENAI_API_KEY` privately. Optionally set `OPENAI_TEST_MODEL` to a supported structured-output model.
+3. In the same Render Environment page, set `LAB_ACCESS_CODE` to a separate random secret of at least 16 characters. Do not reuse your OpenAI key for this field.
+4. Save the variables and wait for the service to redeploy. Refresh the Lab home page; the readiness notice should say generation is configured.
+5. In the Lab, select `US-005`, enter the approved healthcare URL, and **only the Lab access code** in the form. Generate and review 4–8 cases. Do not copy your OpenAI API key into a browser form, this chat, or the repository.
+6. Verify a real provider response and only then say the LLM feature is operational. Start with one low-cost demo and check API billing limits.
+
+The repo's end-to-end Lab HTTP test deliberately **mocks** the model response and the healthcare API. It verifies URL/story intake, structured case validation, signed generation receipts, human approval and source-reviewed GET execution. It proves the integration logic—not live paid model usage or full patient-booking execution.

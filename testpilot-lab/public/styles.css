@@ -78,3 +78,7 @@ button:disabled{opacity:.5;cursor:wait}.ghost{color:#405ddd;background:#eff3ff;b
 .approval-label{margin:2px 0 0 auto;display:flex;align-items:center;gap:7px;background:#eaf4ff;color:#305c95;border:1px solid #d9e9fd;border-radius:8px;padding:6px 8px;font-size:11px;font-weight:750;cursor:pointer}
 .approval-label input{width:14px;height:14px;accent-color:#335edc;margin:0;box-shadow:none}
 .test-card .probe-label{margin:10px 0;font-size:11px;color:#5778a6;font-weight:700}
+
+/* Clear, nonsecret AI configuration status */
+.ai-status{font-size:12px;line-height:1.65;color:#845e24;background:#fff8e7;border:1px solid #f1d9a3;border-radius:9px;padding:11px 13px;margin:10px 0 16px}
+.ai-status.ready{color:#17634e;background:#e8f7ef;border-color:#a8dcc4}

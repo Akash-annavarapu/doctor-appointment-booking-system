@@ -55,3 +55,9 @@ _Last checked: 19 October 2026. The transcript shared in chat omitted the centra
 1. **Privately** configure a valid API key and Lab access code in the Lab's Render service to enable a live LLM demo. **Never paste API keys in a public document or source repository.**
 2. Obtain the instructor's missing meeting feedback (the transcript supplied in chat skipped 01:06–09:50) to confirm any further requirements beyond the milestones listed here.
 3. If full generated-case execution is required now, provision an **isolated** healthcare test backend/database and synthetic patients; do not run state-changing generated tests against production.
+
+## Additional verification: safe Lab integration test
+
+The Lab now exposes `GET /api/capabilities` to show only whether the private LLM prerequisites are configured, without displaying any keys. A Node HTTP integration test (`testpilot-lab/tests/generationWorkflow.test.js`) checks user-story input, mocked provider output, human case approval, tampering rejection, and a measured verified GET assertion. It uses **fake test credentials, a mocked OpenAI response and a mocked healthcare service**. Do not describe this as a real LLM response or a patient booking.
+
+The GitHub Actions Lab workflow and live smoke workflow must both pass for the latest commit. Until an owner configures the private API key and Lab access code and runs an actual generation, live AI generation remains unverified.

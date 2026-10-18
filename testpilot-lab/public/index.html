@@ -43,7 +43,8 @@
           <label for="access-code">Lab access code <span class="light">(only needed for live generation)</span></label>
           <input id="access-code" type="password" autocomplete="off" placeholder="Configured privately by the project owner">
           <button id="generate-button" class="primary" type="submit">✧ Generate AI test cases <span aria-hidden="true">→</span></button>
-          <p class="safety">Generation requires a configured OpenAI API key and lab access code. No key is sent to the browser.</p>
+          <p class="safety">Generation requires a privately configured OpenAI API key and Lab access code. The key never appears in the browser.</p>
+          <p id="ai-setup-status" class="ai-status" role="status" aria-live="polite">Checking whether AI generation is configured…</p>
         </form>
       </section>
 
