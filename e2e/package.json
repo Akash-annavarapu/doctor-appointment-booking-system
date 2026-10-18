@@ -1,0 +1,13 @@
+{
+  "name": "testpilot-browser-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:unit": "node --test unit/*.test.cjs",
+    "test:report": "playwright show-report artifacts/html"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
