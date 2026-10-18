@@ -1,6 +1,8 @@
 "use strict";
 
 const test = require("node:test");
+// Legacy OpenAI tests explicitly select the optional paid provider.
+process.env.AI_PROVIDER = "openai";
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const { handle, FRONTEND, BACKEND } = require("../server");
