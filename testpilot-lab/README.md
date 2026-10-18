@@ -30,11 +30,11 @@ Open http://localhost:5050/.
 
 This separate service has been created on Render, pointing at the same GitHub repository, without changing the existing healthcare frontend/backend services.
 
-- Root Directory: testpilot-lab
+- Root Directory: repository root (the live service currently has this field empty)
 - Runtime: Node.js
-- Build command: npm install
-- Start command: npm start
-- Health check path: /healthz
+- Build command: `cd testpilot-lab && npm install --omit=dev`
+- Start command: `cd testpilot-lab && npm start`
+- Health check path: currently unset in Render (the application exposes `/healthz` and the live-smoke workflow verifies it)
 - Private environment variables: OPENAI_API_KEY and LAB_ACCESS_CODE (minimum 16 random characters); optional OPENAI_TEST_MODEL=gpt-4.1-mini
 
 No API key is stored in this repository or returned to the browser. Lab inspection works without an AI key. AI generation accurately returns HTTP 503 until configured. A private lab access code and basic throttling prevent open-ended anonymous API usage. For wider production rollout, upgrade to managed authentication and persistent rate-limiting.
