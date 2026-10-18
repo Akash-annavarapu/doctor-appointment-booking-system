@@ -39,6 +39,59 @@ jobs:
       - name: Build
         run: npm run build
 
+  playwright:
+    name: Playwright Chromium browser tests (synthetic data)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci --prefix client
+      - name: Build isolated browser target
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:4173/api/v1
+        run: npm run build --prefix client
+      - name: Install pinned Playwright runner
+        run: npm install --prefix e2e --no-audit --no-fund
+      - name: Install Chromium
+        run: cd e2e && npx playwright install --with-deps chromium
+      - name: Test result conversion
+        run: npm run test:unit --prefix e2e
+      - name: Run Playwright Chromium browser tests
+        run: npm test --prefix e2e
+      - name: Convert measured Playwright report
+        if: always()
+        run: |
+          if [ -f e2e/artifacts/results.json ]; then
+            node e2e/scripts/toJest.cjs e2e/artifacts/results.json /tmp/testpilot-playwright-jest.json
+          fi
+      - name: Publish verified browser test results
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
+          REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
+        run: |
+          if [ -f /tmp/testpilot-playwright-jest.json ]; then
+            node server/scripts/publishTestReport.js /tmp/testpilot-playwright-jest.json playwright-chromium
+          fi
+      - name: Upload HTML report, screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-chromium-report
+          path: |
+            e2e/artifacts/
+            e2e/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
   backend:
     name: Backend integration tests (isolated MongoDB)
     runs-on: ubuntu-latest
