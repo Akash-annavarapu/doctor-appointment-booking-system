@@ -58,6 +58,7 @@ jobs:
           await verify('AI setup readiness (no secrets exposed)', async () => {
             const status = await request('/api/capabilities');
             if (!status.success || typeof status.aiGenerationReady !== 'boolean' ||
+                status.aiProvider !== 'Google Gemini' ||
                 status.storyCount !== 25 ||
                 status.executionMode !== 'AUDITED_READ_ONLY_GET_PROBES_ONLY') {
               throw Error('Invalid AI readiness contract');
@@ -67,7 +68,10 @@ jobs:
           });
           await verify('Lab homepage', async () => {
             const page = await request('/');
-            if (!page.includes('TestPilot') || !page.includes('User story')) throw Error('Missing Lab UI');
+            if (!page.includes('TestPilot') || !page.includes('User story') ||
+                !page.includes('Free AI generation uses Google Gemini')) {
+              throw Error('Missing updated free Gemini Lab interface');
+            }
             if (!page.includes('Run approved AI cases (supported subset)')) {
               throw Error('Old Lab UI detected: missing approved AI-case review/execution panel. Redeploy latest main commit.');
             }
