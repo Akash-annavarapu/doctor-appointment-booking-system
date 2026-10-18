@@ -188,9 +188,12 @@ async function loadAiReadiness() {
     const result = await response.json();
     if (typeof result.aiGenerationReady !== "boolean") throw Error("Invalid readiness response");
     status.classList.toggle("ready", result.aiGenerationReady);
+    const provider = result.aiProvider === "Google Gemini" ? "Google Gemini" : "OpenAI";
     status.textContent = result.aiGenerationReady
-      ? "OpenAI generation is configured. Enter your private Lab access code above to generate cases."
-      : "AI generation needs one-time private setup in Render. You can already inspect the app, run read-only checks and view CI results.";
+      ? provider + " is configured. Enter your Lab access code above and generate test cases."
+      : provider === "Google Gemini"
+        ? "Free Gemini AI needs a one-time setup: create a free Google AI Studio key and set GEMINI_API_KEY in Render. No payment card needed for eligible free-tier use. Inspection and verified checks still work."
+        : "OpenAI is not configured. You can still inspect the app and run read-only checks.";
   } catch {
     status.classList.remove("ready");
     status.textContent = "AI configuration status is unavailable. You can still inspect and run safe checks.";
