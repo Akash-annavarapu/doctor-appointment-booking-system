@@ -205,7 +205,39 @@ async function generateCases({ story, inspection, fetchImpl = fetch }) {
   } catch {
     throw new ApiError(502, "AI generation provider is currently unavailable.");
   }
-  if (!response.ok) throw new ApiError(502, "AI provider returned HTTP " + response.status);
+  if (!response.ok) {
+    // Only interpret documented error codes. Never expose arbitrary provider messages
+    // (they may contain user input, account metadata, or other private details).
+    let code = "";
+    let type = "";
+    try {
+      const failure = await response.json();
+      if (typeof failure?.error?.code === "string") code = failure.error.code;
+      if (typeof failure?.error?.type === "string") type = failure.error.type;
+    } catch { /* Some upstream failures do not include JSON. */ }
+    if (response.status === 429) {
+      if (code === "credit_balance_exhausted") {
+        throw new ApiError(502, "OpenAI API credits are exhausted. Check your API billing balance and add credits if needed.");
+      }
+      if (code === "project_spend_limit_exceeded" || code === "organization_spend_limit_exceeded") {
+        throw new ApiError(502, "OpenAI API spending limit reached. Review the project or organization spend limits.");
+      }
+      if (code === "organization_usage_limit_exceeded") {
+        throw new ApiError(502, "OpenAI API organization usage limit reached. Review approved usage limits.");
+      }
+      if (code === "insufficient_quota" || type === "insufficient_quota") {
+        throw new ApiError(502, "OpenAI API quota or billing limit reached. Check your API credit balance and usage limits.");
+      }
+      if (code === "rate_limit_exceeded" || type === "rate_limit_exceeded") {
+        throw new ApiError(502, "OpenAI API rate limit reached. Wait briefly before trying again.");
+      }
+      throw new ApiError(502, "OpenAI returned HTTP 429. Check API credits, spending limits and request rate in the OpenAI Platform.");
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(502, "OpenAI rejected the API credentials or permissions (HTTP " + response.status + "). Check the private Render API key and project access.");
+    }
+    throw new ApiError(502, "AI provider returned HTTP " + response.status);
+  }
   let reply;
   try { reply = await response.json(); }
   catch { throw new ApiError(502, "Invalid AI provider response."); }
