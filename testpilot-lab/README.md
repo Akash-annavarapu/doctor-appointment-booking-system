@@ -11,7 +11,7 @@
 1. Paste the existing healthcare URL https://doctor-appointment-frontend-9dbs.onrender.com/.
 2. Select from 25 documented user stories (or edit the story text). Stories contain role, use case, source-code anchor, API path and acceptance criteria.
 3. Click Inspect live application to read the public HTML and approved-doctor catalog from the exact approved hosts.
-4. When configured with OpenAI, use Generate AI test cases. Model receives the story, route and safe public inspection evidence and returns 4–8 reviewable test cases.
+4. When configured with a free-tier Google Gemini key (or explicitly chosen OpenAI), use Generate AI test cases. Model receives the story, route and safe public inspection evidence and returns 4–8 reviewable test cases.
 5. Export JSON for review. Generated cases initially remain NOT_RUN. The optional approval flow may execute only **source-reviewed read-only GET probes linked to selected AI cases**; other cases remain SKIPPED until an isolated test environment is available.
 
 Only the allowlisted healthcare deployment can be inspected: arbitrary domain crawling and localhost access are blocked to prevent SSRF. Public HTML cannot prove the behavior of authenticated booking screens.
@@ -35,7 +35,7 @@ This separate service has been created on Render, pointing at the same GitHub re
 - Build command: `cd testpilot-lab && npm install --omit=dev`
 - Start command: `cd testpilot-lab && npm start`
 - Health check path: currently unset in Render (the application exposes `/healthz` and the live-smoke workflow verifies it)
-- Private environment variables: OPENAI_API_KEY and LAB_ACCESS_CODE (minimum 16 random characters); optional OPENAI_TEST_MODEL=gpt-4.1-mini
+- Free-tier variables: AI_PROVIDER=gemini, GEMINI_API_KEY and LAB_ACCESS_CODE (at least 16 random characters); optional GEMINI_TEST_MODEL=gemini-3.5-flash-lite. OpenAI remains optional and must be explicitly selected.
 
 No API key is stored in this repository or returned to the browser. Lab inspection works without an AI key. AI generation accurately returns HTTP 503 until configured. A private lab access code and basic throttling prevent open-ended anonymous API usage. For wider production rollout, upgrade to managed authentication and persistent rate-limiting.
 
@@ -51,7 +51,7 @@ The generated cases include id, title, type, priority, preconditions, steps, tes
 ## Roadmap
 
 - Week 5: user stories, source traceability, progress documentation and separate Lab UI.
-- Next: configure the OpenAI key and Lab access code privately, verify a genuine generated set and human review, then extend **isolated** execution for state-changing workflows.
+- Next: configure a free-tier Gemini key and existing Lab access code privately, verify a genuine generated set and human review, then extend **isolated** execution for state-changing workflows.
 - Phase 3: execute approved tests in isolated CI against synthetic fixtures/test database, collect measured results and show PASS/FAIL. Never run LLM-generated code directly on production Render or create real appointments as a smoke test.
 
 Further reading: docs/WEEK5_USER_STORIES.md and docs/WEEK5_PROGRESS_REPORT.md.
@@ -73,7 +73,7 @@ Generated AI cases remain review-required, NOT_RUN. Do not combine a passing pro
 
 ## Approved execution of LLM-generated cases (limited scope)
 
-With private OPENAI_API_KEY and LAB_ACCESS_CODE configured, /api/generate returns 4–8 AI-generated cases. The model must assign each case a probeId: an applicable ID from that story's fixed, audited, read-only GET checks, or NONE where the scenario cannot be safely executed against production.
+With a private GEMINI_API_KEY and LAB_ACCESS_CODE configured (AI_PROVIDER=gemini), /api/generate returns 4–8 LLM-generated cases. The model must assign each case a probeId: an applicable ID from that story's fixed, audited, read-only GET checks, or NONE where the scenario cannot be safely executed against production.
 
 - The Lab validates every proposed probeId against the selected story. For bound checks, the app supplies the source-reviewed expected assertion instead of accepting a model-invented expectation.
 - Each generation response includes a 30-minute, server-signed receipt binding the exact story, allowed healthcare URL and generated case contents. Tokens expire and are invalidated by restart.
@@ -83,14 +83,14 @@ With private OPENAI_API_KEY and LAB_ACCESS_CODE configured, /api/generate return
 
 POST /api/execute-generated accepts targetUrl, storyId, accessCode, receipt, the unchanged cases array, and selectedIds such as ['AI-001']. The generation receipt is not a substitute for authentication.
 
-**Still needed for full milestone 3:** A disposable staging deployment with synthetic patient/doctor/admin fixtures, dedicated test MongoDB, reviewed test oracles and a runner for state-changing or UI workflows. The production deployment must not be used for these tests. Live LLM generation also still requires the user's valid paid OpenAI API key configured in Render.
+**Still needed for full milestone 3:** A disposable staging deployment with synthetic patient/doctor/admin fixtures, dedicated test MongoDB, reviewed test oracles and a runner for state-changing or UI workflows. The production deployment must not be used for these tests. Live LLM generation requires a free-tier Google Gemini key configured in Render (subject to applicable quotas). Paid OpenAI is optional and disabled by default.
 
 
 ## Instructor-ready status (19 October 2026)
 
 **Live Lab deployed on Render:** latest code containing approved generated-case read-only execution was redeployed successfully. The Lab is independent of the healthcare application: it accepts an allowlisted healthcare URL plus a source-grounded user story and supports inspection and safe public verification without a model key.
 
-**AI generation requires operator setup:** In Render's *testpilot-lab* service → **Environment**, set `OPENAI_API_KEY` and a randomly generated `LAB_ACCESS_CODE` (at least 16 characters). Do not commit these values or put an API key into the frontend. The Lab input form accepts only the **Lab access code**, never an OpenAI key. After saving, verify actual generation with a documented user story before claiming end-to-end AI functionality. OpenAI API usage may be billable.
+**AI generation requires operator setup:** In Render's *testpilot-lab* service → **Environment**, set a free-tier `GEMINI_API_KEY`, set `AI_PROVIDER=gemini`, and retain a separate `LAB_ACCESS_CODE` (at least 16 characters). Do not commit these values or put an API key into the frontend. The Lab input form accepts only the **Lab access code**, never an OpenAI key. After saving, verify actual generation with a documented user story before claiming end-to-end AI functionality. A Gemini API free-tier project can generate limited test cases without an API billing account; free-tier quotas and data-use terms apply.
 
 **Execution boundary:** Generated cases are suggestions requiring review; only explicitly approved cases mapped to audited read-only GET checks can be partially executed on the public healthcare service. No generated mutation code, real credentials, patient data, or booking writes are executed on production.
 
@@ -98,15 +98,30 @@ See [instructor checklist](../docs/KAVI_SIR_CURRENT_MILESTONE_CHECKLIST.md).
 
 ## Checking AI readiness without exposing private credentials
 
-The home page displays a nonsecret readiness notice. `GET /api/capabilities` returns only a Boolean `aiGenerationReady`, the count of supported source-grounded stories, and the restricted read-only execution scope. **Configured** does not mean that a live OpenAI generation has been verified.
+The home page displays a nonsecret readiness notice. `GET /api/capabilities` reports the active provider, a Boolean `aiGenerationReady`, the count of supported source-grounded stories, and the restricted read-only execution scope. **Configured** does not mean that a live OpenAI generation has been verified.
 
 To enable genuine LLM generation:
 
-1. Create your own OpenAI Platform API key with appropriate project permissions and API billing. **ChatGPT subscriptions are billed separately from OpenAI API usage.**
-2. Open the **testpilot-lab** Render service → **Environment** and set `OPENAI_API_KEY` privately. Optionally set `OPENAI_TEST_MODEL` to a supported structured-output model.
-3. In the same Render Environment page, set `LAB_ACCESS_CODE` to a separate random secret of at least 16 characters. Do not reuse your OpenAI key for this field.
+1. In [Google AI Studio](https://aistudio.google.com/api-keys), create a free-tier Gemini API key. **Do not select Set up billing or upgrade to a paid tier** for this academic demonstration.
+2. Open the **testpilot-lab** Render service → **Environment** and set `GEMINI_API_KEY` privately. Set `AI_PROVIDER=gemini` and optionally `GEMINI_TEST_MODEL=gemini-3.5-flash-lite`.
+3. In the same Render Environment page, set `LAB_ACCESS_CODE` to a separate random secret of at least 16 characters. Do not reuse your Gemini key for this field.
 4. Save the variables and wait for the service to redeploy. Refresh the Lab home page; the readiness notice should say generation is configured.
-5. In the Lab, select `US-005`, enter the approved healthcare URL, and **only the Lab access code** in the form. Generate and review 4–8 cases. Do not copy your OpenAI API key into a browser form, this chat, or the repository.
-6. Verify a real provider response and only then say the LLM feature is operational. Start with one low-cost demo and check API billing limits.
+5. In the Lab, select `US-005`, enter the approved healthcare URL, and **only the Lab access code** in the form. Generate and review 4–8 cases. Do not copy your Gemini API key into a browser form, this chat, or the repository.
+6. Verify a real provider response and only then say the LLM feature is operational. Start with one free-tier demo and check remaining daily requests in Google AI Studio.
 
 The repo's end-to-end Lab HTTP test deliberately **mocks** the model response and the healthcare API. It verifies URL/story intake, structured case validation, signed generation receipts, human approval and source-reviewed GET execution. It proves the integration logic—not live paid model usage or full patient-booking execution.
+
+
+## Genuine LLM generation with a zero-payment setup
+
+The Lab now defaults to **Google Gemini**, using `gemini-3.5-flash-lite` on Google's **free API tier** when available to the selected project. This is a real LLM service, **not** a rule-based template generator. Google provides a free tier with strict capacity/rate limits; requests to a paid project might be billable. Create and use an **unbilled free-tier Google AI Studio project** and do not enable billing.
+
+- Google AI Studio API keys: https://aistudio.google.com/api-keys
+- Google billing tiers: https://ai.google.dev/gemini-api/docs/billing
+- Gemini API pricing/free tier: https://ai.google.dev/gemini-api/docs/pricing
+
+The earlier OpenAI key is **not used in the default Gemini mode**, even if still present in Render. Switching to OpenAI requires an explicit `AI_PROVIDER=openai`, which may incur API charges. No automatic paid fallback occurs when Gemini reaches its free-tier quota.
+
+**Privacy:** Google states that free-tier API input and output may be used to improve its products. TestPilot only sends the synthetic user story, code-reviewed route/acceptance criteria and aggregated public doctor specialties; never real patients, credentials, appointments, phone numbers, or uploaded documents. LLM cases remain NOT_RUN until reviewed; only bound audited read-only GET probes may run on public healthcare.
+
+**Status boundary:** automated tests use mocked Gemini responses; a live key and successful real model response are still required to claim that free-tier AI generation was demonstrated.

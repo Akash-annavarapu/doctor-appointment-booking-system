@@ -25,7 +25,7 @@ _Last checked: 19 October 2026. The transcript shared in chat omitted the centra
 3. **Show 25 stories**: browse [Week 5 user stories](WEEK5_USER_STORIES.md); trace an example (US-005 approved doctor list, US-007 available slots, or US-017 booking) to its actual API and source file.
 4. **Show Lab**: open the standalone Lab, select US-005 and the allowed healthcare URL, then run **Inspect live application**. This reads public HTML and doctor catalog only.
 5. **Show verified testing**: run the read-only US-005 check. The separate **Latest measured CI runs** panel reports independently measured automated tests, not model-generated tests.
-6. **Explain AI generation accurately**: the endpoint and structured-output validation are implemented. Generating genuine model cases requires privately configured `OPENAI_API_KEY` and `LAB_ACCESS_CODE`. Demonstrate it only after verifying a real response. Initially label cases **NOT_RUN**. Reviewed cases may run audited, story-linked GET assertions; full patient booking tests require a disposable staging environment.
+6. **Explain AI generation accurately**: the endpoint and structured-output validation are implemented. Generating genuine model cases requires privately configured free-tier `GEMINI_API_KEY` and `LAB_ACCESS_CODE` (with `AI_PROVIDER=gemini`). Demonstrate it only after verifying a real response. Initially label cases **NOT_RUN**. Reviewed cases may run audited, story-linked GET assertions; full patient booking tests require a disposable staging environment.
 7. **Show documentation**: 25 stories, 15 use cases, 36 designed cases and Week 1–4 progress summary in [Week 5 report](WEEK5_PROGRESS_REPORT.md).
 
 ## Completion versus pending
@@ -38,7 +38,7 @@ _Last checked: 19 October 2026. The transcript shared in chat omitted the centra
 | Document 20–25 user stories | **Done** | 25 stories in Week 5 report and Lab catalog |
 | Build a **separate** testing application | **Done** | Standalone TestPilot Lab on Render |
 | Accept URL + story, inspect safe public data | **Done** | Lab endpoints and public checks |
-| Implement guarded LLM test-case generation | **Code prepared** | Needs private OpenAI API key + Lab access code for real demonstration |
+| Implement guarded LLM test-case generation | **Code prepared** | Needs private free Gemini key + Lab access code for a real demonstration |
 | Execute confirmed production-safe checks | **Done, limited** | Fixed audited GET assertions, real PASS/FAIL/SKIPPED evidence |
 | Execute model-generated full patient/admin workflow tests | **Not done** | Requires human review, synthetic fixtures and isolated staging/CI |
 | Prove individual scenarios in the 36-case dashboard have run | **Not done** | Case library is NOT_RUN by design |
@@ -52,7 +52,7 @@ _Last checked: 19 October 2026. The transcript shared in chat omitted the centra
 
 ## What is needed from the team
 
-1. **Privately** configure a valid API key and Lab access code in the Lab's Render service to enable a live LLM demo. **Never paste API keys in a public document or source repository.**
+1. **Privately** configure a free-tier Gemini API key and Lab access code in the Lab's Render service to enable a live LLM demo. **Never paste API keys in a public document or source repository.**
 2. Obtain the instructor's missing meeting feedback (the transcript supplied in chat skipped 01:06–09:50) to confirm any further requirements beyond the milestones listed here.
 3. If full generated-case execution is required now, provision an **isolated** healthcare test backend/database and synthetic patients; do not run state-changing generated tests against production.
 
@@ -61,3 +61,10 @@ _Last checked: 19 October 2026. The transcript shared in chat omitted the centra
 The Lab now exposes `GET /api/capabilities` to show only whether the private LLM prerequisites are configured, without displaying any keys. A Node HTTP integration test (`testpilot-lab/tests/generationWorkflow.test.js`) checks user-story input, mocked provider output, human case approval, tampering rejection, and a measured verified GET assertion. It uses **fake test credentials, a mocked OpenAI response and a mocked healthcare service**. Do not describe this as a real LLM response or a patient booking.
 
 The GitHub Actions Lab workflow and live smoke workflow must both pass for the latest commit. Until an owner configures the private API key and Lab access code and runs an actual generation, live AI generation remains unverified.
+
+
+## Free LLM option implemented
+
+TestPilot Lab now defaults to **Google Gemini 3.5 Flash-Lite** with `AI_PROVIDER=gemini`, which is eligible for Google's free API tier. The source-reviewed user story, public inspection, guarded JSON output, signed receipt, human approval and audited read-only verification all remain in place. Existing paid OpenAI keys are **not used** unless OpenAI is deliberately selected in Render.
+
+**Team setup remaining:** Create a free Gemini API key at https://aistudio.google.com/api-keys and save it in Render as `GEMINI_API_KEY`. Do not enable billing, supply real patient data, or paste the key in the UI. Verify one actual model response before claiming free LLM generation was achieved. Free-tier usage has request limits and Google's free-tier data-use terms apply.

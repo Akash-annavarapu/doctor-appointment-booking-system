@@ -46,7 +46,7 @@ The following week-by-week organization is a **presentation outline for work acc
 | Separate testing app prototype | Deployed independently on Render; URL and user-story inputs implemented | https://testpilot-lab.onrender.com/; Lab server.js and UI |
 | Enter a user story and SUT URL | Implemented in Lab UI | GET /api/stories; URL and story inputs |
 | Safe live SUT inspection | Implemented against allowlisted public paths | POST /api/inspect; no authenticated operations |
-| Actual LLM test-case generation | Code prepared, **not operational until OpenAI API key and lab access code are configured** | POST /api/generate |
+| Actual LLM test-case generation | Gemini free-tier code prepared; **not operational until private Gemini key and Lab access code are configured and live generation succeeds** | POST /api/generate |
 | Execute generated tests and report PASS/FAIL | Partially implemented: approved model cases may be bound to **audited read-only GET checks**, if configured; full healthcare workflows are not supported | testpilot-lab/generatedCaseRunner.js; isolated CI tests |
 
 ## Lab architecture and workflow
@@ -54,7 +54,7 @@ The following week-by-week organization is a **presentation outline for work acc
 1. User enters verified healthcare deployment URL and chooses one of 25 source-reviewed user stories.
 2. The independent TestPilot Lab backend reads public HTML and approved doctor catalog from preapproved origins, preventing arbitrary network crawling.
 3. Server combines safe public observations with the selected story's role, source route, use-case ID, and acceptance criteria.
-4. With a configured private OpenAI API key, the server requests 4–8 structured test-case candidates.
+4. With a configured private Google Gemini free-tier API key, the server requests 4–8 structured test-case candidates.
 5. The Lab validates JSON shape, case IDs and allowed categories, then displays/export cases as reviewed=false and NOT_RUN.
 6. Later, human-approved test cases will be converted to executable suites against synthetic fixture data and an isolated test database. Results will be measured and reported.
 
@@ -70,7 +70,7 @@ The following week-by-week organization is a **presentation outline for work acc
 ## Known gaps, prerequisites and limitations
 
 - TestPilot Lab is deployed as a **second** Render web service at https://testpilot-lab.onrender.com/; verify the latest version is live before demonstrating it.
-- An OpenAI API key and a separate Lab access code must be securely supplied to that new service for live generation; no secrets belong in Git or user-browser code.
+- A free-tier Google Gemini API key and a separate Lab access code must be securely supplied to the testing service for live generation; no secrets belong in Git or browser code.
 - Inspecting public HTML and doctor endpoints is **not** equivalent to an autonomous browser understanding every login-protected feature. Feature knowledge is primarily grounded in audited code/use cases.
 - The documented 25 user stories are not proof that the user journey has been tested end-to-end; additional fixtures and access permissions may be required.
 - Never use real patient records. Isolated CI automation and test-result screenshots belong to the next milestone.
@@ -101,12 +101,19 @@ The independent TestPilot Lab has also gained a limited execution service. For n
 
 The Lab can additionally show measured Static-CI results from GitHub Actions through the healthcare backend's existing report API. Those are independently executed Jest/Vitest tests against an isolated test MongoDB, not model-produced test cases.
 
-**Remaining before a full end-to-end AI demonstration:** The separate Lab is deployed. Configure a valid OpenAI API key and private Lab access code in its Render environment, demonstrate a real model response, review generated cases and link executable scenarios to approved, isolated CI fixtures. The optional bound AI-case runner currently covers only source-reviewed read-only GET probes; passing one does **not** prove the entire generated story or a booking workflow passed.
+**Remaining before a full end-to-end AI demonstration:** The separate Lab is deployed. Configure a free-tier Gemini API key and private Lab access code in its Render environment, demonstrate a real model response, review generated cases and link executable scenarios to approved, isolated CI fixtures. The optional bound AI-case runner currently covers only source-reviewed read-only GET probes; passing one does **not** prove the entire generated story or a booking workflow passed.
 
 
 ## Verified deployment refresh — 19 October 2026
 
 - The standalone Lab had been serving the older GitHub revision `3f94d0fbc5427f1ec86c20a294e33ac01808bb10`. It was redeployed on Render to `5cc1fc3b2ca405556161ebdf385ca1a1008ce284`; Render returned **live** for the newer revision.
 - Its latest UI includes explicit case review/approval and bounded execution of safe, source-reviewed GET checks associated with AI cases. It does **not** execute arbitrary model-generated scripts or production booking/registration mutations.
-- The OpenAI generator needs **both** `OPENAI_API_KEY` and `LAB_ACCESS_CODE` configured privately; do not assert a live model response without actually running one.
+- The default free-tier Gemini generator needs **both** `GEMINI_API_KEY` and `LAB_ACCESS_CODE` configured privately; do not assert a live model response without actually running one.
 - See [the current instructor review checklist](KAVI_SIR_CURRENT_MILESTONE_CHECKLIST.md), which separates confirmed progress from requirements needing clarification.
+
+
+## Update — free-tier genuine AI generation approach
+
+The OpenAI billing account has no available trial credit, so TestPilot Lab now selects **Google Gemini 3.5 Flash-Lite** by default (`AI_PROVIDER=gemini`) to meet the student's zero-payment constraint. Google's Gemini API publishes a free tier with rate limits. The existing paid OpenAI integration remains optional but is not automatically invoked. The free-tier Gemini backend and mocked integration tests are in GitHub; real model generation is **pending the owner privately configuring `GEMINI_API_KEY`** and demonstrating a successful response. The resulting cases are still review-required and not proof of executed booking tests.
+
+See https://ai.google.dev/gemini-api/docs/billing and https://ai.google.dev/gemini-api/docs/pricing.
