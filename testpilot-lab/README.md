@@ -134,7 +134,7 @@ The earlier OpenAI key is **not used in the default Gemini mode**, even if still
 The TestPilot Lab frontend adopts a Figma-inspired dashboard with a responsive header, a five-step workflow, story and use-case context, clearer Gemini readiness, and evidence-first labels around case suggestions and measured API/CI results. Changes are presentational only: no Gemini prompts, API allowlists, review receipts, runner permissions or clinical booking behavior were changed.
 
 - The metric 25 comes from the public Lab user-story catalog; 15 is the documented use-case count.
-- The 7 Playwright scenarios metric describes authored browser scenarios, not a dynamic PASS claim.
+- The 7 healthcare browser tests metric describes authored healthcare scenarios (plus 4 separate Lab UI checks in the same CI suite), not a dynamic PASS claim.
 - AI candidates this session updates when a successful Gemini generation returns in this browser.
 - The topbar readiness badge exposes only safe provider availability, never secret values.
 - Only actual measured CI reports and approved read-only checks can show PASS/FAIL evidence.

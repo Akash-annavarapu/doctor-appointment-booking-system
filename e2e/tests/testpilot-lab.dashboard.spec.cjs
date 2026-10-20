@@ -12,7 +12,7 @@ test("TC-0508 Figma-inspired dashboard displays the testing workflow and evidenc
   await expect(page.getByRole("navigation", { name: "Testing workflow" })).toBeVisible();
   await expect(page.locator("#story-count")).toHaveText("25");
   await expect(page.locator("#ai-case-count")).toHaveText("0");
-  await expect(page.getByText("Playwright scenarios", { exact: true })).toBeVisible();
+  await expect(page.getByText("Healthcare browser tests", { exact: true })).toBeVisible();
   await expect(page.getByText("Designed and executed are different.")).toBeVisible();
   await expect(page.getByRole("button", { name: /Generate AI test cases/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Measured CI reports" })).toBeVisible();
