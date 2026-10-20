@@ -100,7 +100,9 @@ function renderResult(data) {
   document.querySelector("#generated-execution").hidden = !data.receipt;
   document.querySelector("#generated-run-message").textContent = "";
   document.querySelector("#generated-run-results").replaceChildren();
-  count.textContent = data.cases.length + " cases";
+  count.textContent = data.cases.length + " candidates";
+  const sessionCount = document.querySelector("#ai-case-count");
+  if (sessionCount) sessionCount.textContent = String(data.cases.length);
   displayInspection(data);
   for (const item of data.cases) {
     const card = node("article", "test-card");
@@ -198,6 +200,11 @@ async function loadAiReadiness() {
     const result = await response.json();
     if (typeof result.aiGenerationReady !== "boolean") throw Error("Invalid readiness response");
     status.classList.toggle("ready", result.aiGenerationReady);
+    const navStatus = document.querySelector("#ai-nav-status");
+    if (navStatus) {
+      navStatus.textContent = result.aiGenerationReady ? "AI generator ready" : "AI setup needed";
+      navStatus.classList.toggle("ready", result.aiGenerationReady);
+    }
     const provider = result.aiProvider === "Google Gemini" ? "Google Gemini" : "OpenAI";
     if (result.aiGenerationReady) {
       status.textContent = provider + " is configured. Enter your Lab access code above and generate test cases.";
@@ -215,6 +222,11 @@ async function loadAiReadiness() {
   } catch {
     status.classList.remove("ready");
     status.textContent = "AI configuration status is unavailable. You can still inspect and run safe checks.";
+    const navStatus = document.querySelector("#ai-nav-status");
+    if (navStatus) {
+      navStatus.textContent = "AI status unavailable";
+      navStatus.classList.remove("ready");
+    }
   }
 }
 loadAiReadiness();
