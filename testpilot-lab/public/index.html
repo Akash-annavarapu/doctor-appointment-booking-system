@@ -9,21 +9,61 @@
   <script src="/assets/app.js" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#workspace-heading">Skip to testing workspace</a>
   <header class="topbar">
-    <a class="brand" href="/"> <span class="brand-icon">T</span> <span>TestPilot <small>LAB</small></span> </a>
-    <span class="top-tag">SEPARATE TESTING APPLICATION</span>
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="TestPilot Lab home">
+        <span class="brand-icon" aria-hidden="true">T</span>
+        <span class="brand-wordmark">TestPilot <small>LAB</small></span>
+      </a>
+      <nav class="primary-nav" aria-label="Dashboard sections">
+        <a href="#workspace-heading">Workspace</a>
+        <a href="#execution-heading">Live checks</a>
+        <a href="#ci-heading">CI reports</a>
+      </nav>
+      <div class="topbar-actions">
+        <span class="connection-indicator" id="ai-nav-status" role="status" aria-live="polite">Checking AI setup…</span>
+        <a class="external-app-link" href="https://doctor-appointment-frontend-9dbs.onrender.com/" target="_blank" rel="noopener noreferrer">Healthcare app <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
   </header>
   <main class="layout">
-    <section class="hero">
-      <p class="eyebrow">WEEK 5 · AI-ASSISTED QUALITY ENGINEERING</p>
-      <h1>From a user story to<br><em>test cases.</em></h1>
-      <p class="lead">Inspect the deployed healthcare app, select a code-grounded user story, and request AI-generated test scenarios. The healthcare system stays independent and unchanged.</p>
-      <div class="quick-stats">
-        <div><strong id="story-count">25</strong><span>documented stories</span></div>
-        <div><strong>15</strong><span>mapped use cases</span></div>
-        <div><strong>0</strong><span>AI cases executed automatically</span></div>
+    <section class="hero" aria-labelledby="workspace-heading">
+      <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> TESTPILOT / QUALITY ENGINEERING</p>
+      <div class="hero-heading-row">
+        <div class="hero-copy">
+          <h1 id="workspace-heading">Design tests.<br><em>Verify with evidence.</em></h1>
+          <p class="lead">Go from a documented user story to genuine Gemini-generated test candidates, then review the cases and inspect separately measured Playwright and live API results.</p>
+          <div class="hero-actions">
+            <a class="hero-primary" href="#generate-form">Start generating <span aria-hidden="true">→</span></a>
+            <a class="hero-secondary" href="#ci-heading">Explore CI evidence <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+        <aside class="hero-proof" aria-label="Evidence boundary">
+          <span class="hero-proof-icon" aria-hidden="true">✓</span>
+          <div><strong>Designed and executed are different.</strong>
+          <p>Gemini proposes scenarios. Human review and measured checks establish what actually passed.</p></div>
+        </aside>
+      </div>
+      <div class="quick-stats" aria-label="Project overview">
+        <div class="stat-tile"><strong id="story-count">25</strong><span>Documented user stories</span><small>Code-grounded requirements</small></div>
+        <div class="stat-tile"><strong>15</strong><span>Mapped use cases</span><small>Healthcare system scope</small></div>
+        <div class="stat-tile"><strong>7</strong><span>Playwright scenarios</span><small>Measured results in CI below</small></div>
+        <div class="stat-tile"><strong id="ai-case-count">0</strong><span>AI candidates this session</span><small>Not executed by generation</small></div>
       </div>
     </section>
+
+    <nav class="workflow-progress" aria-label="Testing workflow">
+      <span><b>01</b> Inspect app</span>
+      <span aria-hidden="true" class="workflow-arrow">→</span>
+      <span><b>02</b> Generate with Gemini</span>
+      <span aria-hidden="true" class="workflow-arrow">→</span>
+      <span><b>03</b> Review and approve</span>
+      <span aria-hidden="true" class="workflow-arrow">→</span>
+      <span><b>04</b> Verify supported checks</span>
+      <span aria-hidden="true" class="workflow-arrow">→</span>
+      <span><b>05</b> Read measured CI</span>
+    </nav>
 
     <div class="workspace">
       <section class="panel config" aria-labelledby="setup-heading">
@@ -49,12 +89,12 @@
       </section>
 
       <section class="panel results" aria-labelledby="results-heading">
-        <div class="panel-heading"><span class="step-number">02</span><div><p class="kicker">OUTPUT</p><h2 id="results-heading">Generated test cases</h2></div><span id="result-count" class="count">0 cases</span></div>
+        <div class="panel-heading"><span class="step-number">02</span><div><p class="kicker">OUTPUT</p><h2 id="results-heading">Generated test cases</h2></div><span id="result-count" class="count">0 candidates</span></div>
         <div id="message" class="message" role="status" aria-live="polite"></div>
         <div id="empty-state" class="empty-state">
           <div class="empty-icon">✳</div>
-          <h3>Ready for your first test suite</h3>
-          <p>Start by inspecting the healthcare URL and selecting a story. Approved AI results will appear here as reviewable, unexecuted test cases.</p>
+          <h3>Start with a user story</h3>
+          <p>Select a documented story, inspect the allowlisted healthcare deployment, and generate reviewable Gemini suggestions. Nothing is marked PASS until a measured check runs.</p>
           <div class="stages">
             <span>1. Inspect</span><span>2. Generate</span><span>3. Review</span><span>4. Run supported checks</span>
           </div>
@@ -65,7 +105,7 @@
           <button type="button" id="export-button" class="ghost">↓ Export test cases JSON</button>
         </div>
         <div id="generated-execution" class="ai-execution-box" hidden>
-          <h3>Run approved AI cases (supported subset)</h3>
+          <h3>Execute approved cases with source-reviewed checks</h3>
           <p class="help">Select cases above to approve. Only cases bound to a reviewed, read-only healthcare API assertion can execute against the live system. Other cases are explicitly SKIPPED; full booking/login automation requires isolated staging.</p>
           <button id="execute-generated-button" class="primary" type="button">▶ Execute selected AI cases safely</button>
           <div id="generated-run-message" class="message" role="status" aria-live="polite"></div>
@@ -87,7 +127,7 @@
     </section>
 
     <section class="panel ci-panel" aria-labelledby="ci-heading">
-      <div class="panel-heading"><span class="step-number">04</span><div><p class="kicker">AUTOMATED TEST EVIDENCE</p><h2 id="ci-heading">Latest measured CI runs</h2></div></div>
+      <div class="panel-heading"><span class="step-number">04</span><div><p class="kicker">AUTOMATED TEST EVIDENCE</p><h2 id="ci-heading">Measured CI reports</h2></div></div>
       <div class="execution-body">
         <p class="lead-small">View measured Jest/Vitest checks and the Week 5 Playwright Chromium browser suite run by GitHub Actions. Playwright uses synthetic fixtures against a locally built healthcare UI; no real bookings are created. These Static-CI results are separate from unreviewed Gemini-generated test cases.</p>
         <button type="button" id="load-ci-button" class="ghost">↻ Load verified CI reports</button>
