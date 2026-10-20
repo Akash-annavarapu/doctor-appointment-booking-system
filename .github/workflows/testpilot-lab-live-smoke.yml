@@ -76,8 +76,11 @@ jobs:
                 !page.includes('Free AI generation uses Google Gemini')) {
               throw Error('Missing updated free Gemini Lab interface');
             }
-            if (!page.includes('Run approved AI cases (supported subset)')) {
-              throw Error('Old Lab UI detected: missing approved AI-case review/execution panel. Redeploy latest main commit.');
+            if (!page.includes('id="generated-execution"') ||
+                !page.includes('id="execute-generated-button"') ||
+                !page.includes('id="workspace-heading"') ||
+                !page.includes('id="ai-case-count"')) {
+              throw Error('Required review, execution or redesigned dashboard controls are missing.');
             }
             return 'independent testing UI served';
           });
