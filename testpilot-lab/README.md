@@ -125,3 +125,19 @@ The earlier OpenAI key is **not used in the default Gemini mode**, even if still
 **Privacy:** Google states that free-tier API input and output may be used to improve its products. TestPilot only sends the synthetic user story, code-reviewed route/acceptance criteria and aggregated public doctor specialties; never real patients, credentials, appointments, phone numbers, or uploaded documents. LLM cases remain NOT_RUN until reviewed; only bound audited read-only GET probes may run on public healthcare.
 
 **Status boundary:** automated tests use mocked Gemini responses; a live key and successful real model response are still required to claim that free-tier AI generation was demonstrated.
+
+
+## Figma dashboard refinement
+
+**Editable design:** https://www.figma.com/design/7CInSkKoEzd0gTjxd1iPS4
+
+The TestPilot Lab frontend adopts a Figma-inspired dashboard with a responsive header, a five-step workflow, story and use-case context, clearer Gemini readiness, and evidence-first labels around case suggestions and measured API/CI results. Changes are presentational only: no Gemini prompts, API allowlists, review receipts, runner permissions or clinical booking behavior were changed.
+
+- The metric 25 comes from the public Lab user-story catalog; 15 is the documented use-case count.
+- The 7 Playwright scenarios metric describes authored browser scenarios, not a dynamic PASS claim.
+- AI candidates this session updates when a successful Gemini generation returns in this browser.
+- The topbar readiness badge exposes only safe provider availability, never secret values.
+- Only actual measured CI reports and approved read-only checks can show PASS/FAIL evidence.
+- Separate Chromium smoke tests cover the Figma-inspired dashboard and mobile viewport on a local, uncredentialed Lab server.
+
+**Live implementation:** https://testpilot-lab.onrender.com/
