@@ -37,7 +37,7 @@ test("TC-0510 missing private AI configuration is disclosed without exposing sec
   await expect(page.locator("#ai-nav-status")).toHaveText("AI setup needed");
   await expect(page.locator("#ai-case-count")).toHaveText("0");
   await expect(page.locator("#result-count")).toHaveText("0 candidates");
-  await expect(page.getByText("All generated cases are NOT RUN")).toHaveCount(0);
+  await expect(page.locator("#results-footer")).toBeHidden();
   // A user may inspect/review even when free-tier Gemini hasn't been connected.
   await expect(page.getByRole("button", { name: /Inspect live application/i })).toBeEnabled();
 });
