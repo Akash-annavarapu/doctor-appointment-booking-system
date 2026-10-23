@@ -1,70 +1,140 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+
+import {
+  useAuth,
+} from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 
 function Navbar() {
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
-  const { user, isAuthenticated, clearSession } = useAuth();
 
-  const closeMenu = () => setIsOpen(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const {
+    user,
+    isAuthenticated,
+    clearSession,
+  } = useAuth();
+
   const handleLogout = () => {
     clearSession();
-    closeMenu();
-    navigate("/login", { replace: true });
+    setIsOpen(false);
+
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+  const closeMenu = () => {
+    setIsOpen(false);
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light app-navbar" aria-label="Main navigation">
-      <div className="container app-navbar-inner">
-        <Link className="navbar-brand app-brand" to="/" onClick={closeMenu}>
-          <span className="app-brand-symbol" aria-hidden="true">✚</span>
-          <span>TestPilot</span>
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm app-navbar">
+      <div className="container">
+
+        <Link
+          className="navbar-brand fw-bold"
+          to="/"
+          onClick={closeMenu}
+        >
+          🏥 TestPilot
         </Link>
 
         <button
+          className="navbar-toggler"
           type="button"
-          className="navbar-toggler app-nav-toggle"
-          aria-controls="main-navigation"
-          aria-expanded={isOpen}
-          aria-label="Toggle navigation"
           onClick={() => setIsOpen(!isOpen)}
+          aria-label="Toggle navigation"
         >
-          <span className="navbar-toggler-icon" />
+          <span className="navbar-toggler-icon"></span>
         </button>
 
-        <div id="main-navigation" className={"collapse navbar-collapse app-nav-collapse" + (isOpen ? " show" : "")}>
-          <ul className="navbar-nav app-nav-links mx-lg-auto">
-            <li className="nav-item"><Link className="nav-link" to="/" onClick={closeMenu}>Home</Link></li>
-            <li className="nav-item"><Link className="nav-link" to="/#featured-doctors" onClick={closeMenu}>Specialties</Link></li>
-            <li className="nav-item"><Link className="nav-link" to="/#featured-doctors" onClick={closeMenu}>Find a doctor</Link></li>
-            <li className="nav-item"><Link className="nav-link" to="/#how-it-works" onClick={closeMenu}>How it works</Link></li>
-            <li className="nav-item"><Link className="nav-link" to="/test-cases" onClick={closeMenu}>Test Cases</Link></li>
-          </ul>
+        <div
+          className={`collapse navbar-collapse ${isOpen ? "show" : ""}`}
+        >
+          <ul className="navbar-nav ms-auto">
 
-          <div className="app-nav-actions">
+            <li className="nav-item">
+              <Link
+                className="nav-link"
+                to="/"
+                onClick={closeMenu}
+              >
+                Home
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link
+                className="nav-link"
+                to="/test-cases"
+                onClick={closeMenu}
+              >
+                Test Cases
+              </Link>
+            </li>
+
             {!isAuthenticated ? (
               <>
-                <Link className="nav-link" to="/login" onClick={closeMenu}>Login</Link>
-                <Link className="nav-link app-register-link" to="/register" onClick={closeMenu}>Register</Link>
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/login"
+                    onClick={closeMenu}
+                  >
+                    Login
+                  </Link>
+                </li>
+
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to="/register"
+                    onClick={closeMenu}
+                  >
+                    Register
+                  </Link>
+                </li>
               </>
             ) : (
               <>
-                <NotificationBell />
-                <Link
-                  className="nav-link"
-                  to={user?.isAdmin ? "/admin/dashboard" : user?.isDoctor ? "/doctor/dashboard" : "/user/dashboard"}
-                  onClick={closeMenu}
-                >Dashboard</Link>
-                <button type="button" className="nav-link app-logout btn btn-link" onClick={handleLogout}>Logout</button>
+                <li className="nav-item d-flex align-items-center">
+                  <NotificationBell />
+                </li>
+
+                <li className="nav-item">
+                  <Link
+                    className="nav-link"
+                    to={
+                      user?.isAdmin
+                        ? "/admin/dashboard"
+                        : user?.isDoctor
+                        ? "/doctor/dashboard"
+                        : "/user/dashboard"
+                    }
+                    onClick={closeMenu}
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+
+                <li className="nav-item">
+                  <button
+                    type="button"
+                    className="nav-link btn btn-link border-0 bg-transparent p-0 text-start"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                </li>
               </>
             )}
-            <Link className="btn btn-primary app-book-visit" to={isAuthenticated ? "/doctors" : "/login"} onClick={closeMenu}>
-              Book a visit <span aria-hidden="true">↗</span>
-            </Link>
-          </div>
+
+          </ul>
         </div>
+
       </div>
     </nav>
   );

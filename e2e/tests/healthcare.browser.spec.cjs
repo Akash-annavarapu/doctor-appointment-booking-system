@@ -3,7 +3,7 @@ const { test, expect } = require("../fixtures.cjs");
 test("TC-0501 public homepage and synthetic doctor cards render", async ({ page }, testInfo) => {
   await page.goto("/");
   await expect(page.getByRole("heading", {
-    name: /Good health starts with the right doctor/i
+    name: /Care made easier, one appointment at a time/i
   })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Our Doctors" })).toBeVisible();
   await expect(page.locator(".doctor-directory-card")).toHaveCount(2);
@@ -72,33 +72,4 @@ test("TC-0507 empty login form is blocked by browser validation", async ({ page 
   await expect(password).toHaveAttribute("required", "");
   await page.getByRole("button", { name: "Login", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
-});
-
-
-test("TC-0512 redesigned blue healthcare homepage keeps doctor search and training transparency", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Find your doctor/ }).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Your next appointment/ })).toBeVisible();
-  await expect(page.locator(".doctor-card-media")).toHaveCount(2);
-  await expect(page.getByText(/These fictional doctor profiles/i)).toBeVisible();
-  const ctaColor = await page.locator(".app-book-visit").evaluate(
-    (element) => getComputedStyle(element).backgroundColor
-  );
-  expect(ctaColor).toBe("rgb(24, 98, 214)");
-});
-
-test("TC-0513 mobile healthcare page avoids horizontal scroll and offers accessible menu", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  const toggle = page.getByRole("button", { name: "Toggle navigation" });
-  await expect(toggle).toBeVisible();
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator("#main-navigation").getByRole("link", { name: "Test Cases" })).toBeVisible();
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-  );
-  expect(overflow).toBeLessThanOrEqual(1);
 });

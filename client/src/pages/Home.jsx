@@ -1,112 +1,171 @@
-import { useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import FeaturedDoctors from "../components/FeaturedDoctors";
+import {
+  useAuth,
+} from "../context/AuthContext";
 
 function Home() {
-  const { hash } = useLocation();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!hash) return;
-    const id = decodeURIComponent(hash.slice(1));
-    const element = document.getElementById(id);
-    if (element && typeof element.scrollIntoView === "function") {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+  const {
+    isAuthenticated,
+  } = useAuth();
+
+  const handleBookAppointment = () => {
+    if (isAuthenticated) {
+      navigate("/doctors");
+    } else {
+      navigate("/login");
     }
-  }, [hash]);
+  };
 
   return (
     <>
       <Navbar />
 
-      <main className="healthcare-home">
-        <section className="home-hero" aria-labelledby="home-heading">
-          <div className="container home-hero-grid">
-            <div className="home-hero-copy">
-              <p className="home-eyebrow"><span className="home-eyebrow-dot" aria-hidden="true" /> A SIMPLE WAY TO EXPLORE CARE</p>
-              <h1 id="home-heading" className="home-hero-title">
-                Good health starts with <span>the right doctor.</span>
-              </h1>
-              <p className="home-hero-subtitle">
-                Find a specialist, explore the available schedules, and try booking an appointment—all in one easy-to-use healthcare demo.
-              </p>
-              <div className="home-hero-actions">
-                <a className="btn btn-primary home-hero-button" href="#featured-doctors">
-                  Find your doctor <span aria-hidden="true">→</span>
-                </a>
-                <a className="home-how-link" href="#how-it-works">
-                  <span className="home-play-icon" aria-hidden="true">▶</span> How it works
-                </a>
-              </div>
-              <div className="home-hero-helper">
-                <span className="home-helper-icon" aria-hidden="true">✚</span>
-                <span><strong>Explore at your own pace</strong><small>Sample doctors and appointments for software testing</small></span>
-              </div>
-            </div>
+      {/* Hero Section */}
+      <div className="container py-5 home-hero">
+        <div className="row align-items-center g-4 g-lg-5">
+          <div className="col-lg-6 text-center text-lg-start">
+            <span className="home-eyebrow">✚ TestPilot · Healthcare appointments</span>
+            <h1 className="display-4 fw-bold text-primary home-hero-title">
+              Care made easier, one appointment at a time.
+            </h1>
 
-            <div className="home-hero-visual">
-              <div className="home-hero-blob" aria-hidden="true" />
-              <div className="home-hero-image-shell">
-                <img
-                  className="home-hero-image"
-                  src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=1100&q=85"
-                  alt="Illustrative stock photograph of a healthcare professional"
-                  fetchPriority="high"
-                  decoding="async"
-                />
-              </div>
-              <div className="home-floating-card home-floating-top">
-                <span className="home-floating-icon" aria-hidden="true">✦</span>
-                <span><strong>Find your specialty</strong><small>Explore doctor profiles</small></span>
-              </div>
-              <div className="home-floating-card home-floating-bottom">
-                <span className="home-floating-icon" aria-hidden="true">▦</span>
-                <span><strong>Check open slots</strong><small>See date-specific availability</small></span>
-              </div>
-              <div className="home-image-disclaimer">Illustrative photo · Training website</div>
+            <p className="lead mt-3">
+              Browse medical specializations, inspect live appointment slots, and try the booking workflow in our healthcare demo.
+            </p>
+
+            <div className="mt-4 home-cta-actions">
+              <button
+                type="button"
+                onClick={handleBookAppointment}
+                className="btn btn-primary btn-lg"
+              >
+                Book Appointment
+              </button>
+
+              {!isAuthenticated && (
+                <Link
+                  to="/register"
+                  className="btn btn-outline-primary btn-lg"
+                >
+                  Register
+                </Link>
+              )}
             </div>
           </div>
-        </section>
 
-        <div id="featured-doctors" className="home-doctors-anchor">
-          <FeaturedDoctors />
+          <div className="col-lg-6 text-center mt-4 mt-lg-0">
+            <div className="home-image-shell">
+              <img
+                src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1200&q=85"
+                className="home-hero-image"
+                alt="Modern hospital entrance and welcoming healthcare environment"
+                fetchPriority="high"
+                decoding="async"
+              />
+              <div className="home-photo-note">✚ A welcoming space for better care</div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <section id="how-it-works" className="home-process" aria-labelledby="how-heading">
-          <div className="container home-process-inner">
-            <div className="home-process-intro">
-              <span className="home-process-kicker">A SIMPLER WAY TO GET STARTED</span>
-              <h2 id="how-heading">Your next appointment, <span>in three easy steps.</span></h2>
-              <p>Try the workflow using sample profiles and test information.</p>
-            </div>
-            <div className="home-process-steps">
-              <div className="home-process-step">
-                <span className="home-process-number">01</span>
-                <h3>Find your match</h3>
-                <p>Search by doctor or specialty to explore available profiles.</p>
-              </div>
-              <div className="home-process-step">
-                <span className="home-process-number">02</span>
-                <h3>Choose a time</h3>
-                <p>Check a date and see the open appointment slots.</p>
-              </div>
-              <div className="home-process-step">
-                <span className="home-process-number">03</span>
-                <h3>Book your visit</h3>
-                <p>Sign in and continue through the appointment booking flow.</p>
+      {/* Features Section */}
+      <div className="container py-5 home-features">
+        <p className="home-section-eyebrow text-center mb-2">Your care, simplified</p>
+        <h2 className="text-center fw-bold mb-5">
+          Why Choose TestPilot?
+        </h2>
+
+        <div className="row g-4">
+          <div className="col-md-4">
+            <div className="card shadow-sm h-100 text-center home-feature-card">
+              <div className="card-body">
+                <div className="home-feature-icon" aria-hidden="true">👨‍⚕️</div>
+
+                <h5 className="card-title">
+                  Explore Specialties
+                </h5>
+
+                <p className="card-text">
+                  Browse real approved profiles and clearly labeled demo specialists
+                  by their configured weekly schedules.
+                </p>
               </div>
             </div>
           </div>
-        </section>
 
-        <section className="home-demo-bar" aria-label="Demo project information">
-          <div className="container home-demo-bar-inner">
-            <div><strong>Built for exploring and testing.</strong><p>This is a healthcare training application, not a real provider directory.</p></div>
-            <Link to="/test-cases" className="home-demo-link">See our test cases <span aria-hidden="true">↗</span></Link>
+          <div className="col-md-4">
+            <div className="card shadow-sm h-100 text-center home-feature-card">
+              <div className="card-body">
+                <div className="home-feature-icon" aria-hidden="true">📅</div>
+
+                <h5 className="card-title">
+                  Easy Booking
+                </h5>
+
+                <p className="card-text">
+                  Book appointments online in just a few clicks.
+                </p>
+              </div>
+            </div>
           </div>
-        </section>
-      </main>
+
+          <div className="col-md-4">
+            <div className="card shadow-sm h-100 text-center home-feature-card">
+              <div className="card-body">
+                <div className="home-feature-icon" aria-hidden="true">🗂️</div>
+
+                <h5 className="card-title">
+                  Appointment Tracking
+                </h5>
+
+                <p className="card-text">
+                  View and manage your booked appointments from your dashboard.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Statistics Section */}
+      <section className="bg-primary text-white py-5 mt-5 home-statistics" aria-label="How appointment booking works">
+        <div className="container">
+          <h2 className="text-center text-white fw-bold mb-4">How it works</h2>
+          <div className="row g-3 text-center">
+            <div className="col-md-4">
+              <div className="home-step">
+                <span className="home-step-number">01</span>
+                <h3>Explore doctors</h3>
+                <p>Browse available doctor profiles and specialties.</p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="home-step">
+                <span className="home-step-number">02</span>
+                <h3>Book a visit</h3>
+                <p>Choose a doctor and schedule an appointment.</p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="home-step">
+                <span className="home-step-number">03</span>
+                <h3>Stay organized</h3>
+                <p>Review and manage appointments from your dashboard.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Doctors */}
+      <div id="featured-doctors">
+        <FeaturedDoctors />
+      </div>
 
       <Footer />
     </>
