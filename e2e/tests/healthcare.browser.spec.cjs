@@ -96,7 +96,7 @@ test("TC-0513 mobile healthcare page avoids horizontal scroll and offers accessi
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("link", { name: "Test Cases" })).toBeVisible();
+  await expect(page.locator("#main-navigation").getByRole("link", { name: "Test Cases" })).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth
   );
