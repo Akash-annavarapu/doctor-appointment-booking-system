@@ -7,6 +7,7 @@ const { compareGeneratedWithManual, normalizeManual } = require("../evaluation")
 const manual = require("../manual-baseline.json");
 const { validateBrowserSelection, checksForStory } = require("../browserCoverage");
 const { select } = require("../../e2e/scripts/selectReviewedCase.cjs");
+const { buildTraceability } = require("../traceability");
 
 function candidates() {
   return [
@@ -66,4 +67,22 @@ test("only fixed source-reviewed browser checks can be selected", () => {
   assert.throws(()=>select("US-005","TC-9999"),/No source-reviewed/);
   assert.throws(()=>select("US-005","TC-0502; echo hacked"),/No source-reviewed/);
   assert.throws(()=>select("US-005","../../server"),/No source-reviewed/);
+});
+
+
+test("traceability covers all 25 stories, 15 use cases, 36 manual case designs", () => {
+  const output=buildTraceability();
+  assert.equal(output.summary.documentedStories,25);
+  assert.equal(output.summary.useCases,15);
+  assert.equal(output.summary.designedManualCases,36);
+  assert.equal(output.rows.length,25);
+  assert.equal(output.summary.storiesWithDesignedCases,25);
+  const doctorList=output.rows.find(row=>row.id==="US-005");
+  assert.deepEqual(doctorList.fixedPlaywrightIds,["TC-0501","TC-0502"]);
+  assert.ok(doctorList.readOnlyProbeIds.includes("approved-doctor-list"));
+  assert.ok(doctorList.manualCaseIds.includes("TP-011"));
+  const booking=output.rows.find(row=>row.id==="US-017");
+  assert.deepEqual(booking.fixedPlaywrightIds,["TC-0503"]);
+  assert.equal(booking.readOnlyProbeIds.length,0);
+  assert.match(output.warning,/not PASS\/FAIL/);
 });
