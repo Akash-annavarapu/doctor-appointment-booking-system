@@ -100,6 +100,10 @@ function renderResult(data) {
   document.querySelector("#generated-execution").hidden = !data.receipt;
   document.querySelector("#generated-run-message").textContent = "";
   document.querySelector("#generated-run-results").replaceChildren();
+  document.querySelector("#evaluation-result").replaceChildren();
+  document.querySelector("#browser-plan-result").replaceChildren();
+  currentEvaluation = null;
+  document.querySelector("#export-evaluation-button").hidden = true;
   count.textContent = data.cases.length + " candidates";
   const sessionCount = document.querySelector("#ai-case-count");
   if (sessionCount) sessionCount.textContent = String(data.cases.length);
@@ -345,6 +349,20 @@ loadCiButton.addEventListener("click", async () => {
       item.append(node("p", "", "Total: " + run.summary.total + " · Passed: " + run.summary.passed +
         " · Failed: " + run.summary.failed + " · Skipped: " + run.summary.skipped));
       item.append(node("small", "", "Run " + run.runId + " · " + run.timestamp + " · " + run.engine));
+      if (Array.isArray(run.testResults) && run.testResults.length) {
+        const details = node("details", "ci-case-details");
+        details.append(node("summary", "", "View " + run.testResults.length + " measured assertions"));
+        const rows = node("div", "ci-case-list");
+        for (const measured of run.testResults) {
+          const row = node("div", "ci-case-row");
+          row.append(node("span", "ci-case-id", measured.id));
+          row.append(node("span", "", measured.title));
+          row.append(node("span", "status-chip " + measured.status.toLowerCase(), measured.status));
+          rows.append(row);
+        }
+        details.append(rows);
+        item.append(details);
+      }
       ciResults.append(item);
     }
   } catch (error) {
@@ -407,4 +425,115 @@ executeGeneratedButton.addEventListener("click", async () => {
   } finally {
     executeGeneratedButton.disabled = false;
   }
+});
+
+
+// Comparison is based on signed, current model candidates and an audited manual baseline.
+// No count or category overlap is presented as semantic/requirements coverage proof.
+const evaluateAiButton = document.querySelector("#evaluate-ai-button");
+const evaluationResult = document.querySelector("#evaluation-result");
+const exportEvaluationButton = document.querySelector("#export-evaluation-button");
+let currentEvaluation = null;
+
+function candidateReviewPayload() {
+  if (!currentResult?.receipt) throw Error("Generate fresh Gemini cases first.");
+  return {
+    storyId: currentResult.storyId,
+    targetUrl: currentResult.targetUrl,
+    cases: currentResult.cases,
+    receipt: currentResult.receipt,
+    accessCode: document.querySelector("#access-code").value
+  };
+}
+
+evaluateAiButton.addEventListener("click", async () => {
+  evaluateAiButton.disabled = true;
+  evaluationResult.replaceChildren(node("p", "probe-note", "Comparing documented manual cases with actual AI candidates…"));
+  exportEvaluationButton.hidden = true;
+  currentEvaluation = null;
+  try {
+    const reply = await request("/api/evaluate", candidateReviewPayload());
+    const evaluation = reply.evaluation;
+    currentEvaluation = evaluation;
+    evaluationResult.replaceChildren();
+    evaluationResult.append(node("p", "lab-evaluation-summary",
+      evaluation.ai.total + " generated candidates vs " + evaluation.manual.total +
+      " manually designed scenarios in " + evaluation.useCase + "."));
+    evaluationResult.append(node("p", "probe-note",
+      "AI-linked read-only probe candidates: " + evaluation.ai.linkedReadOnlyProbeCandidates +
+      " · Exact duplicate candidate titles: " + evaluation.ai.exactNormalizedDuplicateTitles));
+    const table = node("table", "lab-compare-table");
+    const header = node("tr", "");
+    for (const heading of ["Scenario type", "AI", "Manual"]) header.append(node("th", "", heading));
+    table.append(header);
+    for (const category of evaluation.categoryComparison) {
+      const row = node("tr", "");
+      row.append(node("td", "", category.type));
+      row.append(node("td", "", category.generated));
+      row.append(node("td", "", category.manual));
+      table.append(row);
+    }
+    evaluationResult.append(table);
+    if (evaluation.manual.examples.length) {
+      const details = node("details", "lab-evaluation-manual");
+      details.append(node("summary", "", "View " + evaluation.manual.examples.length + " manual baseline scenarios"));
+      for (const item of evaluation.manual.examples) {
+        details.append(node("p", "probe-note", item.id + " · " + item.category + " · " + item.scenario));
+      }
+      evaluationResult.append(details);
+    }
+    evaluationResult.append(node("p", "lab-review-disclaimer", evaluation.interpretation));
+    exportEvaluationButton.hidden = false;
+  } catch (error) {
+    evaluationResult.replaceChildren(node("p", "message error", error.message));
+  } finally { evaluateAiButton.disabled = false; }
+});
+
+exportEvaluationButton.addEventListener("click", () => {
+  if (!currentEvaluation) return;
+  const file = new Blob([JSON.stringify(currentEvaluation, null, 2)], { type: "application/json" });
+  const address = URL.createObjectURL(file);
+  const link = node("a", "");
+  link.href = address;
+  link.download = "testpilot-ai-vs-manual-" + currentEvaluation.storyId.toLowerCase() + ".json";
+  link.click();
+  URL.revokeObjectURL(address);
+});
+
+const browserPlanButton = document.querySelector("#browser-plan-button");
+const browserPlanResult = document.querySelector("#browser-plan-result");
+browserPlanButton.addEventListener("click", async () => {
+  const selectedIds = [...document.querySelectorAll(".ai-case-approval:checked")].map(el => el.value);
+  if (!selectedIds.length) {
+    browserPlanResult.replaceChildren(node("p", "message error", "Review and approve at least one AI candidate above."));
+    return;
+  }
+  browserPlanButton.disabled = true;
+  browserPlanResult.replaceChildren(node("p", "probe-note", "Validating approved candidates and source-reviewed browser mappings…"));
+  try {
+    const reply = await request("/api/browser-plan", { ...candidateReviewPayload(), selectedIds });
+    browserPlanResult.replaceChildren();
+    browserPlanResult.append(node("p", "lab-evaluation-summary",
+      selectedIds.length + " AI candidate(s) selected for review. No browser tests have started."));
+    if (!reply.browserChecks.length) {
+      browserPlanResult.append(node("p", "probe-note", "There is no fixed browser check for this story yet. The approved AI candidates remain unexecuted."));
+    }
+    for (const check of reply.browserChecks) {
+      const item = node("div", "lab-browser-check");
+      item.append(node("strong", "", check.testId + " · " + check.description));
+      item.append(node("small", "", "GitHub workflow inputs: story_id = " + check.storyId +
+        " ; browser_check_id = " + check.testId));
+      browserPlanResult.append(item);
+    }
+    if (reply.browserChecks.length) {
+      const open = node("a", "lab-workflow-link", "Open approved Playwright workflow ↗");
+      open.href = reply.workflowUrl;
+      open.target = "_blank";
+      open.rel = "noopener noreferrer";
+      browserPlanResult.append(open);
+    }
+    browserPlanResult.append(node("p", "lab-review-disclaimer", reply.interpretation));
+  } catch (error) {
+    browserPlanResult.replaceChildren(node("p", "message error", error.message));
+  } finally { browserPlanButton.disabled = false; }
 });
