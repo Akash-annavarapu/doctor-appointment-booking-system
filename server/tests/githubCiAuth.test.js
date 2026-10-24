@@ -34,6 +34,26 @@ describe("GitHub Actions report identity validation", () => {
       .toMatchObject({ repository: TRUST.repository, runId: "38610160353" });
   });
 
+  test("accepts only the reviewed browser workflow on main with workflow_dispatch", async () => {
+    const reviewed = makeJwt({
+      workflow_ref: TRUST.reviewedWorkflowRef,
+      event_name: "workflow_dispatch"
+    });
+    await expect(verifyGitHubCI(reviewed, "38610160353:1:playwright-reviewed-story", jwksFetch))
+      .resolves.toMatchObject({ repository: TRUST.repository, workflow: TRUST.reviewedWorkflowRef });
+    await expect(verifyGitHubCI(makeJwt({
+      workflow_ref: TRUST.reviewedWorkflowRef, event_name: "push"
+    }), runId, jwksFetch)).rejects.toThrow("Invalid GitHub Actions identity");
+    await expect(verifyGitHubCI(makeJwt({
+      workflow_ref: TRUST.workflowRef, event_name: "workflow_dispatch"
+    }), runId, jwksFetch)).rejects.toThrow("Invalid GitHub Actions identity");
+    await expect(verifyGitHubCI(makeJwt({
+      workflow_ref: TRUST.reviewedWorkflowRef,
+      event_name: "workflow_dispatch",
+      ref: "refs/heads/attacker-branch"
+    }), runId, jwksFetch)).rejects.toThrow("Invalid GitHub Actions identity");
+  });
+
   test("rejects tokens for other repositories, workflows, refs and run IDs", async () => {
     const mutations = [
       { repository: "attacker/fork" },
