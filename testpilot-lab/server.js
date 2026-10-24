@@ -444,7 +444,7 @@ async function handle(req, res) {
               status: t.status, executionTime: Number(t.executionTime) || 0 })) : []
         }));
       return json(res, 200, { success: true, runs,
-        statement: "Measured existing Jest/Vitest CI runs. Not AI-generated test execution." });
+        statement: "Measured GitHub Actions Jest, Vitest and Playwright assertions. Prewritten browser runs are not arbitrary AI-generated scripts." });
     } catch {
       return json(res, 502, { success: false, message: "Verified CI reporting is currently unavailable." });
     }
