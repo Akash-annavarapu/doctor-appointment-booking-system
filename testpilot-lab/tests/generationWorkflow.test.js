@@ -104,6 +104,33 @@ test("full Lab HTTP workflow validates model candidates, approval and safe GET e
     assert.equal(result.cases[0].expectedResult, knownCheck.expected);
     assert.ok(typeof result.receipt === "string" && result.receipt.length > 100);
 
+    const reviewPayload = {
+      storyId: story.id, targetUrl: FRONTEND + "/",
+      cases: result.cases, receipt: result.receipt, accessCode: payload.accessCode
+    };
+    const evaluation = await send("/api/evaluate", reviewPayload);
+    assert.equal(evaluation.status, 200);
+    assert.equal(evaluation.body.evaluation.ai.total, 4);
+    assert.equal(evaluation.body.evaluation.manual.total, 3);
+    assert.deepEqual(evaluation.body.evaluation.relatedPrewrittenBrowserChecks
+      .map(item => item.testId), ["TC-0501", "TC-0502"]);
+    assert.match(evaluation.body.evaluation.interpretation, /NOT semantic coverage/);
+
+    const plan = await send("/api/browser-plan", {
+      ...reviewPayload, selectedIds: ["AI-001"]
+    });
+    assert.equal(plan.status, 200);
+    assert.equal(plan.body.executed, false);
+    assert.deepEqual(plan.body.approvedCaseIds, ["AI-001"]);
+    assert.deepEqual(plan.body.browserChecks.map(item => item.testId), ["TC-0501", "TC-0502"]);
+    assert.match(plan.body.interpretation, /does NOT prove/i);
+    const unapprovedPlan = await send("/api/browser-plan", {
+      ...reviewPayload, selectedIds: []
+    });
+    assert.equal(unapprovedPlan.status, 400);
+    const codeDenied = await send("/api/evaluate", { ...reviewPayload, accessCode: "incorrect" });
+    assert.equal(codeDenied.status, 401);
+
     const completed = await send("/api/execute-generated", {
       storyId: story.id,
       targetUrl: FRONTEND + "/",
@@ -134,6 +161,14 @@ test("full Lab HTTP workflow validates model candidates, approval and safe GET e
     });
     assert.equal(tamper.status, 400);
     assert.match(tamper.body.message, /changed|receipt|expired/i);
+    const tamperedEvaluation = await send("/api/evaluate", {
+      ...reviewPayload, cases: altered
+    });
+    assert.equal(tamperedEvaluation.status, 400);
+    const tamperedPlan = await send("/api/browser-plan", {
+      ...reviewPayload, cases: altered, selectedIds: ["AI-001"]
+    });
+    assert.equal(tamperedPlan.status, 400);
 
     assert.equal(outbound.filter(item => item.url.startsWith(BACKEND)).length, 2);
     assert.equal(outbound.filter(item => item.url === "https://api.openai.com/v1/responses").length, 1);
