@@ -79,7 +79,10 @@ jobs:
             if (!page.includes('id="generated-execution"') ||
                 !page.includes('id="execute-generated-button"') ||
                 !page.includes('id="workspace-heading"') ||
-                !page.includes('id="ai-case-count"')) {
+                !page.includes('id="ai-case-count"') ||
+                !page.includes('id="evaluate-ai-button"') ||
+                !page.includes('id="browser-plan-button"') ||
+                !page.includes('id="traceability-button"')) {
               throw Error('Required review, execution or redesigned dashboard controls are missing.');
             }
             return 'independent testing UI served';
@@ -91,6 +94,21 @@ jobs:
               throw Error('Story count / use case map mismatch');
             }
             return '25 stories mapped to 15 use cases';
+          });
+          await verify('25-story traceability and reviewed browser mappings', async () => {
+            const data = await request('/api/traceability');
+            if (!data.success || data.summary.documentedStories !== 25 ||
+                data.summary.useCases !== 15 || data.summary.designedManualCases !== 36 ||
+                data.rows.length !== 25) {
+              throw Error('Story/manual case traceability mismatch');
+            }
+            const doctorStory = data.rows.find(row => row.id === 'US-005');
+            if (!doctorStory || !doctorStory.manualCaseIds.includes('TP-011') ||
+                !doctorStory.readOnlyProbeIds.includes('approved-doctor-list') ||
+                !doctorStory.fixedPlaywrightIds.includes('TC-0502')) {
+              throw Error('Source-approved browser and live traceability is missing');
+            }
+            return '25 stories / 15 use cases / 36 manually designed cases mapped without PASS claims';
           });
           await verify('approved live GET test mapping', async () => {
             const data = await request('/api/probes?storyId=US-005');
