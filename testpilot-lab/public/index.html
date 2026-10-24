@@ -110,6 +110,21 @@
           <button id="execute-generated-button" class="primary" type="button">▶ Execute selected AI cases safely</button>
           <div id="generated-run-message" class="message" role="status" aria-live="polite"></div>
           <div id="generated-run-results" class="run-results"></div>
+          <div class="lab-review-extras">
+            <section class="lab-review-card" aria-labelledby="evaluation-title">
+              <h4 id="evaluation-title">AI vs manual test-case comparison</h4>
+              <p class="help">Compare the actual Gemini output with the 36-case documented manual baseline for this use case. This compares counts, test types and priorities; it does not claim semantic correctness.</p>
+              <button type="button" class="ghost" id="evaluate-ai-button">Compare with manual test cases</button>
+              <div id="evaluation-result" class="lab-review-results" role="status" aria-live="polite"></div>
+              <button type="button" class="ghost" id="export-evaluation-button" hidden>↓ Export comparison JSON</button>
+            </section>
+            <section class="lab-review-card" aria-labelledby="reviewed-browser-title">
+              <h4 id="reviewed-browser-title">Reviewed Playwright test plan</h4>
+              <p class="help">Approve a generated candidate above, then see related source-reviewed browser checks you can run manually in isolated GitHub Actions. The fixed checks are not the generated narrative itself.</p>
+              <button type="button" class="ghost" id="browser-plan-button">Show safe browser checks for approved cases</button>
+              <div id="browser-plan-result" class="lab-review-results" role="status" aria-live="polite"></div>
+            </section>
+          </div>
         </div>
       </section>
     </div>
@@ -129,7 +144,7 @@
     <section class="panel ci-panel" aria-labelledby="ci-heading">
       <div class="panel-heading"><span class="step-number">04</span><div><p class="kicker">AUTOMATED TEST EVIDENCE</p><h2 id="ci-heading">Measured CI reports</h2></div></div>
       <div class="execution-body">
-        <p class="lead-small">View measured Jest/Vitest checks and the Week 5 Playwright Chromium browser suite run by GitHub Actions. Playwright uses synthetic fixtures against a locally built healthcare UI; no real bookings are created. These Static-CI results are separate from unreviewed Gemini-generated test cases.</p>
+        <p class="lead-small">View measured Jest/Vitest and Playwright Chromium results from GitHub Actions, including individual browser assertions. Browser tests run against locally built UI with synthetic API fixtures; no real bookings are created. These results are separate from unexecuted Gemini suggestions.</p>
         <button type="button" id="load-ci-button" class="ghost">↻ Load verified CI reports</button>
         <p class="help">For full Playwright HTML reports, screenshots and failure traces, open the <a href="https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/workflows/testpilot-ci.yml" target="_blank" rel="noopener noreferrer">TestPilot GitHub Actions workflow ↗</a> and select the most recent run. Only actually published results appear below.</p>
         <div id="ci-message" class="message" aria-live="polite" role="status"></div>
