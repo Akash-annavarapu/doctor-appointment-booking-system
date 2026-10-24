@@ -7,6 +7,7 @@ const TRUST = Object.freeze({
   repositoryId: "1415924819",
   ref: "refs/heads/main",
   workflowRef: "Akash-annavarapu/doctor-appointment-booking-system/.github/workflows/testpilot-ci.yml@refs/heads/main",
+  reviewedWorkflowRef: "Akash-annavarapu/doctor-appointment-booking-system/.github/workflows/reviewed-playwright.yml@refs/heads/main",
   jwksUrl: "https://token.actions.githubusercontent.com/.well-known/jwks",
 });
 let keyCache = { keys: [], expires: 0 };
@@ -84,12 +85,16 @@ function checkSignature(jwk, parts, claims, runId) {
   if (!valid) throw new CIAuthError();
 
   const now = Math.floor(Date.now() / 1000);
+  // Fixed trust allowlist: original push regression or the manually dispatched,
+  // prewritten approved-story Playwright workflow. No forks, PRs or other actions.
+  const trustedWorkflow =
+    (claims.workflow_ref === TRUST.workflowRef && claims.event_name === "push") ||
+    (claims.workflow_ref === TRUST.reviewedWorkflowRef && claims.event_name === "workflow_dispatch");
   if (claims.iss !== TRUST.issuer || claims.aud !== TRUST.audience ||
       claims.repository !== TRUST.repository ||
       String(claims.repository_id) !== TRUST.repositoryId ||
       claims.ref !== TRUST.ref ||
-      claims.workflow_ref !== TRUST.workflowRef ||
-      claims.event_name !== "push" ||
+      !trustedWorkflow ||
       !Number.isSafeInteger(claims.exp) || claims.exp <= now ||
       !Number.isSafeInteger(claims.iat) || claims.iat > now + 60 ||
       claims.exp - claims.iat > 3600 ||
