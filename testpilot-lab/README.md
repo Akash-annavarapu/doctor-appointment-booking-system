@@ -141,3 +141,14 @@ The TestPilot Lab frontend adopts a Figma-inspired dashboard with a responsive h
 - Separate Chromium smoke tests cover the Figma-inspired dashboard and mobile viewport on a local, uncredentialed Lab server.
 
 **Live implementation:** https://testpilot-lab.onrender.com/
+
+
+## Later milestone: reviewer-controlled browser evidence and AI/manual comparison
+
+- Source-grounded mapping: `GET /api/traceability` lists each of the 25 stories, its manual cases, available public read-only probes, and approved prewritten Playwright checks. A mapping is **not** a PASS claim.
+- After **genuine Gemini generation**, press **Compare with manual test cases** to compare the HMAC-receipted candidate metadata (counts, types, priority and duplicate titles) with the 36-case manual baseline, filtered by the selected story's use case. This is **not** semantic correctness grading.
+- After reviewing and ticking at least one model case, press **Show safe browser checks for approved cases**. This returns only fixed, audited story-to-Playwright check mappings. The user can manually open [Reviewed story Playwright check](https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/workflows/reviewed-playwright.yml), use the specified `story_id` and `browser_check_id`, and run GitHub Actions in a synthetic isolated Chromium environment. The model never injects a test script.
+- The Lab's **Load verified CI reports** now expands the underlying measured test IDs and statuses from the healthcare backend's report API; stack traces and other private logs are not forwarded.
+- Full automatic execution of arbitrary generated healthcare scripts is **not implemented**. For stateful booking/admin actions, use reviewed code and disposable synthetic test data in a separate CI/staging backend.
+
+See [Problem Statement Audit](../docs/PROBLEM_STATEMENT_COMPLETION_AUDIT.md) for requirement-by-requirement readiness and remaining evaluation tasks.
