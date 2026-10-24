@@ -151,6 +151,16 @@
         <div id="ci-results" class="run-results"></div>
       </div>
     </section>
+    <section class="panel traceability-panel" aria-labelledby="traceability-heading">
+      <div class="panel-heading"><span class="step-number">05</span><div><p class="kicker">PROJECT SCOPE</p><h2 id="traceability-heading">User story → Test coverage mapping</h2></div></div>
+      <div class="execution-body">
+        <p class="lead-small">See which of the 25 documented stories are covered by designed manual test cases, have an approved live read-only probe, or have a prewritten synthetic-data Playwright check. A mapping does not mean the test has passed.</p>
+        <button type="button" class="ghost" id="traceability-button">Load story coverage matrix</button>
+        <div id="traceability-message" role="status" aria-live="polite" class="message"></div>
+        <div id="traceability-summary" class="traceability-metrics"></div>
+        <div id="traceability-results" class="traceability-table-wrap"></div>
+      </div>
+    </section>
     <section class="footnote">
       <h2>Two applications, one testing objective.</h2>
       <p><strong>System under test:</strong> the original GitHub doctor appointment booking application on Render. <strong>Testing application:</strong> this independent TestPilot Lab. It collects the deployed URL and user story, inspects public app evidence, and generates candidate cases. This lab supports limited measured read-only checks now; full execution of generated test cases against an isolated test environment remains the next milestone.</p>
