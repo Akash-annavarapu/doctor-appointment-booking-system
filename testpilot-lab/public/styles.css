@@ -229,3 +229,29 @@ button:hover:not(:disabled){transform:translateY(-1px)}
   html{scroll-behavior:auto}
   button,.ghost,.primary,.hero-actions a,.primary-nav a{transition:none}
 }
+
+
+/* Final-phase review workflow: metadata comparison and controlled browser evidence */
+.lab-review-extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:23px}
+.lab-review-card{min-width:0;background:#fff;border:1px solid #e0e9f8;border-radius:13px;padding:18px 17px;box-shadow:0 5px 18px rgba(35,74,141,.035)}
+.lab-review-card h4{color:#1d3761;font-size:15px;margin:0 0 10px}
+.lab-review-card .help{margin:0 0 12px}
+.lab-review-card button{width:100%;min-height:40px;font-size:12px}
+.lab-review-results{margin-top:14px;font-size:12px;overflow-wrap:anywhere}
+.lab-evaluation-summary{font-weight:750;color:#2656a9;line-height:1.6;margin:0 0 8px}
+.lab-compare-table{width:100%;border-collapse:collapse;font-size:11px;margin:10px 0}
+.lab-compare-table th,.lab-compare-table td{text-align:left;border-bottom:1px solid #e5eafa;padding:7px 8px}
+.lab-compare-table th{background:#edf3ff;color:#355d9e;font-weight:750}
+.lab-review-disclaimer{font-size:11px;line-height:1.65;color:#647a94;margin:11px 0 0}
+.lab-evaluation-manual summary,.ci-case-details summary{cursor:pointer;color:#365cdb;font-weight:750;font-size:11px;padding:8px 0}
+.lab-browser-check{display:flex;flex-direction:column;gap:6px;background:#f5f8ff;padding:11px;border-radius:9px;border:1px solid #e0eafa;margin:9px 0}
+.lab-browser-check strong{color:#234774;font-size:11px}
+.lab-browser-check small{color:#637b9d;line-height:1.55}
+.lab-workflow-link{display:inline-flex;align-items:center;text-decoration:none;color:#355bd3;font-size:11px;font-weight:750;margin-top:9px}
+.lab-workflow-link:hover{text-decoration:underline}
+.ci-case-details{margin-top:12px;border-top:1px solid #e3eaf6;padding-top:7px}
+.ci-case-list{display:grid;gap:5px;margin-top:6px}
+.ci-case-row{display:grid;grid-template-columns:76px 1fr auto;align-items:start;gap:8px;padding:7px 8px;background:#f6f9ff;border-radius:7px;color:#4a607c;font-size:11px}
+.ci-case-id{font-weight:800;color:#365cdb}
+.ci-case-row .status-chip{font-size:10px}
+@media(max-width:720px){.lab-review-extras{grid-template-columns:1fr}.ci-case-row{grid-template-columns:60px 1fr;gap:6px}.ci-case-row .status-chip{grid-column:2;justify-self:start}}
