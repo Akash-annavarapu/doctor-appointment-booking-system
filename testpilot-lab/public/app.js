@@ -537,3 +537,55 @@ browserPlanButton.addEventListener("click", async () => {
     browserPlanResult.replaceChildren(node("p", "message error", error.message));
   } finally { browserPlanButton.disabled = false; }
 });
+
+
+// Source-reviewed requirement traceability; this is a design matrix, not execution status.
+const traceButton = document.querySelector("#traceability-button");
+const traceMessage = document.querySelector("#traceability-message");
+const traceSummary = document.querySelector("#traceability-summary");
+const traceResults = document.querySelector("#traceability-results");
+traceButton.addEventListener("click", async () => {
+  traceButton.disabled = true;
+  traceResults.replaceChildren();
+  traceSummary.replaceChildren();
+  traceMessage.textContent = "Loading story-to-test mappings…";
+  traceMessage.className = "message";
+  try {
+    const response = await fetch("/api/traceability", { cache: "no-store" });
+    const payload = await response.json();
+    if (!response.ok || !payload.success) throw Error(payload.message || "Unable to load traceability.");
+    const metrics = [
+      ["Stories",payload.summary.documentedStories],
+      ["Use cases",payload.summary.useCases],
+      ["Manual designs",payload.summary.designedManualCases],
+      ["Stories with live probes",payload.summary.storiesWithLiveProbe],
+      ["Stories with browser checks",payload.summary.storiesWithFixedPlaywright]
+    ];
+    for (const [title,count] of metrics) {
+      const card=node("div","trace-metric");
+      card.append(node("strong","",count));
+      card.append(node("span","",title));
+      traceSummary.append(card);
+    }
+    const table=node("table","trace-table");
+    const head=node("tr","");
+    for(const label of ["Story","Mapped use case","Manual case IDs","Available live probes","Fixed Playwright IDs"])
+      head.append(node("th","",label));
+    table.append(head);
+    for(const rowData of payload.rows) {
+      const row=node("tr","");
+      row.append(node("td","",rowData.id+" · "+rowData.title));
+      row.append(node("td","",rowData.useCase));
+      row.append(node("td","",rowData.manualCaseIds.join(", ") || "None"));
+      row.append(node("td","",rowData.readOnlyProbeIds.join(", ") || "Not available"));
+      row.append(node("td","",rowData.fixedPlaywrightIds.join(", ") || "Not mapped"));
+      table.append(row);
+    }
+    traceResults.append(table);
+    traceMessage.textContent=payload.warning;
+    traceMessage.className="message success";
+  } catch(error) {
+    traceMessage.textContent=error.message;
+    traceMessage.className="message error";
+  } finally { traceButton.disabled=false; }
+});
