@@ -7,6 +7,7 @@ const stories = require("./user-stories.json");
 const { CHECKS, checksForStory, executeStoryChecks } = require("./verifiedChecks");
 const { issueReceipt, verifyReceipt, validateApprovedCases, executeGeneratedCases } = require("./generatedCaseRunner");
 const { compareGeneratedWithManual } = require("./evaluation");
+const { buildTraceability } = require("./traceability");
 const { checksForStory: browserChecksForStory, WORKFLOW_URL } = require("./browserCoverage");
 
 const FRONTEND = "https://doctor-appointment-frontend-9dbs.onrender.com";
@@ -404,6 +405,10 @@ async function handle(req, res) {
       executionMode: "AUDITED_READ_ONLY_GET_PROBES_ONLY",
       warning: "Configured readiness does not prove a live provider request succeeded."
     });
+  }
+  if (req.method === "GET" && pathname === "/api/traceability") {
+    try { return json(res, 200, { success: true, ...buildTraceability() }); }
+    catch { return json(res, 503, { success: false, message: "Traceability catalog unavailable." }); }
   }
   if (req.method === "GET" && pathname === "/api/stories") {
     return json(res, 200, { count: stories.length, stories, targetUrl: FRONTEND + "/" });
