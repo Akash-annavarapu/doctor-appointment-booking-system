@@ -1,0 +1,74 @@
+name: Reviewed story Playwright check
+
+on:
+  workflow_dispatch:
+    inputs:
+      story_id:
+        description: "Reviewed documented user story (e.g. US-005)"
+        required: true
+        type: string
+      browser_check_id:
+        description: "Source-reviewed fixed Playwright test ID (e.g. TC-0502)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  reviewed-browser-check:
+    name: Reviewed story browser test (synthetic only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      STORY_ID: ${{ inputs.story_id }}
+      BROWSER_CHECK_ID: ${{ inputs.browser_check_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select allowlisted story/test mapping
+        id: select
+        run: node e2e/scripts/selectReviewedCase.cjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install frontend
+        run: npm ci --prefix client
+      - name: Build isolated healthcare frontend
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:4173/api/v1
+        run: npm run build --prefix client
+      - name: Install pinned Playwright
+        run: npm install --prefix e2e --no-audit --no-fund
+      - name: Install Chromium
+        run: cd e2e && npx playwright install --with-deps chromium
+      - name: Run only the reviewed, fixed browser check
+        run: cd e2e && npx playwright test --grep "${{ steps.select.outputs.test_grep }}"
+      - name: Convert measured result
+        if: always()
+        run: |
+          if [ -f e2e/artifacts/results.json ]; then
+            node e2e/scripts/toJest.cjs e2e/artifacts/results.json /tmp/approved-review-results.json
+          fi
+      - name: Publish actual result to existing dashboard
+        if: always()
+        env:
+          TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
+          REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
+        run: |
+          if [ -f /tmp/approved-review-results.json ]; then
+            node server/scripts/publishTestReport.js /tmp/approved-review-results.json playwright-reviewed-story
+          fi
+      - name: Upload evidence and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewed-story-playwright-evidence
+          path: |
+            e2e/artifacts/
+            e2e/test-results/
+          if-no-files-found: warn
+          retention-days: 14

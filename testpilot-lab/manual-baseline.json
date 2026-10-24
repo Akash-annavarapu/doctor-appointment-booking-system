@@ -1,0 +1,254 @@
+[
+  {
+    "id": "TP-001",
+    "useCase": "UC-01",
+    "category": "Positive",
+    "priority": "P0",
+    "scenario": "Register with unique email, valid name/password/mobile"
+  },
+  {
+    "id": "TP-002",
+    "useCase": "UC-01",
+    "category": "Negative",
+    "priority": "P1",
+    "scenario": "Missing one required registration field"
+  },
+  {
+    "id": "TP-003",
+    "useCase": "UC-01",
+    "category": "Boundary",
+    "priority": "P1",
+    "scenario": "Password is 7 characters"
+  },
+  {
+    "id": "TP-004",
+    "useCase": "UC-01",
+    "category": "Boundary",
+    "priority": "P1",
+    "scenario": "Valid 8-character password"
+  },
+  {
+    "id": "TP-005",
+    "useCase": "UC-01",
+    "category": "Negative",
+    "priority": "P1",
+    "scenario": "Reuse existing email (case normalized)"
+  },
+  {
+    "id": "TP-006",
+    "useCase": "UC-01",
+    "category": "Negative",
+    "priority": "P1",
+    "scenario": "Phone not matching 10-digit Indian mobile pattern"
+  },
+  {
+    "id": "TP-007",
+    "useCase": "UC-02",
+    "category": "Positive",
+    "priority": "P0",
+    "scenario": "Correct email and password"
+  },
+  {
+    "id": "TP-008",
+    "useCase": "UC-02",
+    "category": "Negative",
+    "priority": "P0",
+    "scenario": "Wrong password"
+  },
+  {
+    "id": "TP-009",
+    "useCase": "UC-03",
+    "category": "Security",
+    "priority": "P0",
+    "scenario": "Fetch GET /auth/me without token"
+  },
+  {
+    "id": "TP-010",
+    "useCase": "UC-15",
+    "category": "Authorization",
+    "priority": "P0",
+    "scenario": "Patient requests admin doctor-approval route"
+  },
+  {
+    "id": "TP-011",
+    "useCase": "UC-04",
+    "category": "Positive",
+    "priority": "P1",
+    "scenario": "GET /doctor/all with one approved and one pending doctor"
+  },
+  {
+    "id": "TP-012",
+    "useCase": "UC-04",
+    "category": "Empty data",
+    "priority": "P2",
+    "scenario": "No approved doctors exist"
+  },
+  {
+    "id": "TP-013",
+    "useCase": "UC-04",
+    "category": "Negative",
+    "priority": "P1",
+    "scenario": "GET /doctor/:id with invalid MongoDB ObjectId"
+  },
+  {
+    "id": "TP-014",
+    "useCase": "UC-05",
+    "category": "Positive",
+    "priority": "P1",
+    "scenario": "Authenticated patient submits valid doctor application"
+  },
+  {
+    "id": "TP-015",
+    "useCase": "UC-05",
+    "category": "State",
+    "priority": "P1",
+    "scenario": "Submit another application while first pending"
+  },
+  {
+    "id": "TP-016",
+    "useCase": "UC-06",
+    "category": "Positive",
+    "priority": "P0",
+    "scenario": "Admin approves pending application"
+  },
+  {
+    "id": "TP-017",
+    "useCase": "UC-06",
+    "category": "Authorization",
+    "priority": "P0",
+    "scenario": "Patient attempts doctor approval"
+  },
+  {
+    "id": "TP-018",
+    "useCase": "UC-07",
+    "category": "Boundary",
+    "priority": "P1",
+    "scenario": "Set appointment slot duration to 10 minutes"
+  },
+  {
+    "id": "TP-019",
+    "useCase": "UC-07",
+    "category": "Positive",
+    "priority": "P1",
+    "scenario": "Doctor sets valid weekly sessions and 30-minute slots"
+  },
+  {
+    "id": "TP-020",
+    "useCase": "UC-08",
+    "category": "Negative",
+    "priority": "P1",
+    "scenario": "Request slots for a past date"
+  },
+  {
+    "id": "TP-021",
+    "useCase": "UC-08",
+    "category": "Boundary/state",
+    "priority": "P1",
+    "scenario": "Request a configured blocked date"
+  },
+  {
+    "id": "TP-022",
+    "useCase": "UC-08",
+    "category": "State",
+    "priority": "P1",
+    "scenario": "Doctor disabled on requested weekday"
+  },
+  {
+    "id": "TP-023",
+    "useCase": "UC-09",
+    "category": "Positive",
+    "priority": "P0",
+    "scenario": "Patient books a valid future free slot"
+  },
+  {
+    "id": "TP-024",
+    "useCase": "UC-09",
+    "category": "Negative",
+    "priority": "P0",
+    "scenario": "Book time outside doctor's working sessions"
+  },
+  {
+    "id": "TP-025",
+    "useCase": "UC-09",
+    "category": "Concurrency",
+    "priority": "P0",
+    "scenario": "Two patients race for same doctor/date/time"
+  },
+  {
+    "id": "TP-026",
+    "useCase": "UC-09",
+    "category": "Negative",
+    "priority": "P1",
+    "scenario": "Book an already occupied active slot"
+  },
+  {
+    "id": "TP-027",
+    "useCase": "UC-13",
+    "category": "Validation",
+    "priority": "P1",
+    "scenario": "Upload unsupported file MIME type"
+  },
+  {
+    "id": "TP-028",
+    "useCase": "UC-13",
+    "category": "Boundary",
+    "priority": "P1",
+    "scenario": "Upload file exceeding 5 MiB"
+  },
+  {
+    "id": "TP-029",
+    "useCase": "UC-10",
+    "category": "Authorization",
+    "priority": "P1",
+    "scenario": "Patient A fetches GET /appointment/user"
+  },
+  {
+    "id": "TP-030",
+    "useCase": "UC-11",
+    "category": "Authorization",
+    "priority": "P1",
+    "scenario": "Doctor A fetches GET /appointment/doctor"
+  },
+  {
+    "id": "TP-031",
+    "useCase": "UC-12",
+    "category": "Positive",
+    "priority": "P0",
+    "scenario": "Doctor changes Pending → Approved"
+  },
+  {
+    "id": "TP-032",
+    "useCase": "UC-12",
+    "category": "State",
+    "priority": "P0",
+    "scenario": "Doctor attempts Completed → Pending"
+  },
+  {
+    "id": "TP-033",
+    "useCase": "UC-12",
+    "category": "Authorization",
+    "priority": "P0",
+    "scenario": "Doctor B tries changing Doctor A's appointment"
+  },
+  {
+    "id": "TP-034",
+    "useCase": "UC-13",
+    "category": "Security",
+    "priority": "P0",
+    "scenario": "Doctor B requests Doctor A appointment's medical file"
+  },
+  {
+    "id": "TP-035",
+    "useCase": "UC-14",
+    "category": "Positive",
+    "priority": "P1",
+    "scenario": "User fetches own notifications"
+  },
+  {
+    "id": "TP-036",
+    "useCase": "UC-14",
+    "category": "Security",
+    "priority": "P1",
+    "scenario": "User A attempts to mark User B notification read"
+  }
+]
