@@ -5,14 +5,17 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const stories = require("./user-stories.json");
 const { CHECKS, checksForStory, executeStoryChecks } = require("./verifiedChecks");
-const { issueReceipt, executeGeneratedCases } = require("./generatedCaseRunner");
+const { issueReceipt, verifyReceipt, validateApprovedCases, executeGeneratedCases } = require("./generatedCaseRunner");
+const { compareGeneratedWithManual } = require("./evaluation");
+const { checksForStory: browserChecksForStory, WORKFLOW_URL } = require("./browserCoverage");
 
 const FRONTEND = "https://doctor-appointment-frontend-9dbs.onrender.com";
 const BACKEND = "https://doctor-appointment-booking-system-u1eq.onrender.com";
 const allowedPaths = new Set(["/", "/test-cases"]);
 const hitTimes = new Map();
 const RATE_WINDOW_MS = 15 * 60 * 1000;
-const RATE_LIMITS = Object.freeze({ generate: 4, execute: 20, "execute-generated": 12 });
+const RATE_LIMITS = Object.freeze({ generate: 4, execute: 20, "execute-generated": 12,
+  evaluate: 15, "browser-plan": 15 });
 
 class ApiError extends Error {
   constructor(status, message, retryAfterSeconds) {
@@ -427,7 +430,13 @@ async function handle(req, res) {
             failed: Number(r.summary.failed) || 0,
             skipped: Number(r.summary.skipped) || 0,
             durationMs: Number(r.summary.durationMs) || 0
-          }
+          },
+          testResults: Array.isArray(r.testResults) ? r.testResults
+            .filter(t => /^(?:TP|TC)-\d{3,5}$/.test(String(t.id || "")) &&
+              ["PASS","FAIL"].includes(t.status))
+            .slice(0, 500)
+            .map(t => ({ id: String(t.id), title: String(t.title || "").slice(0, 180),
+              status: t.status, executionTime: Number(t.executionTime) || 0 })) : []
         }));
       return json(res, 200, { success: true, runs,
         statement: "Measured existing Jest/Vitest CI runs. Not AI-generated test execution." });
@@ -446,13 +455,39 @@ async function handle(req, res) {
     res.writeHead(200, { "Content-Type": mime });
     return res.end(fs.readFileSync(path.join(__dirname, "public", filename)));
   }
-  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate" || pathname === "/api/execute" || pathname === "/api/execute-generated")) {
+  if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate" ||
+      pathname === "/api/execute" || pathname === "/api/execute-generated" ||
+      pathname === "/api/evaluate" || pathname === "/api/browser-plan")) {
     try {
-      const payload = await readBody(req, pathname === "/api/execute-generated" ? 40000 : 10000);
+      const payload = await readBody(req,
+        ["/api/execute-generated", "/api/evaluate", "/api/browser-plan"].includes(pathname) ? 40000 : 10000);
       const targetUrl = checkTarget(payload.targetUrl);
       if (pathname === "/api/inspect") {
         const inspection = await inspectSut(targetUrl);
         return json(res, 200, { success: true, inspection });
+      }
+      if (pathname === "/api/evaluate" || pathname === "/api/browser-plan") {
+        if (!stories.some(item => item.id === payload.storyId)) throw new ApiError(400, "Unknown story.");
+        checkAccessCode(payload.accessCode);
+        takeRateLimit(req.socket.remoteAddress || "unknown",
+          pathname === "/api/evaluate" ? "evaluate" : "browser-plan");
+        try {
+          verifyReceipt(payload.receipt, payload.storyId, targetUrl, payload.cases);
+          if (pathname === "/api/evaluate") {
+            const evaluation = compareGeneratedWithManual(payload.storyId, payload.cases);
+            return json(res, 200, { success: true, evaluation });
+          }
+          const { selected } = validateApprovedCases(payload.storyId, payload.cases, payload.selectedIds);
+          return json(res, 200, {
+            success: true, storyId: payload.storyId,
+            approvedCaseIds: selected.map(item => item.id),
+            browserChecks: browserChecksForStory(payload.storyId),
+            workflowUrl: WORKFLOW_URL, executed: false,
+            interpretation: "A human may manually run a related prewritten Playwright scenario in GitHub Actions using synthetic fixtures. This does NOT prove the generated narrative ran or that all its steps passed."
+          });
+        } catch (error) {
+          throw new ApiError(400, error.message);
+        }
       }
       if (pathname === "/api/execute-generated") {
         if (!stories.some(item => item.id === payload.storyId)) throw new ApiError(400, "Unknown story.");
