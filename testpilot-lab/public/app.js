@@ -483,6 +483,7 @@ evaluateAiButton.addEventListener("click", async () => {
       evaluationResult.append(details);
     }
     evaluationResult.append(node("p", "lab-review-disclaimer", evaluation.interpretation));
+    renderHumanCoverageAssessment(evaluation);
     exportEvaluationButton.hidden = false;
   } catch (error) {
     evaluationResult.replaceChildren(node("p", "message error", error.message));
@@ -589,3 +590,84 @@ traceButton.addEventListener("click", async () => {
     traceMessage.className="message error";
   } finally { traceButton.disabled=false; }
 });
+
+
+// Reviewer-entered acceptance-criteria assessment. No AI-derived or inferred scores.
+// Use three states so untouched criteria are never silently treated as uncovered.
+function renderHumanCoverageAssessment(evaluation) {
+  const story = stories.find(item => item.id === evaluation.storyId);
+  const criteria = Array.isArray(story?.acceptanceCriteria) ? story.acceptanceCriteria : [];
+  if (!criteria.length) return;
+  const section = node("section", "reviewer-assessment");
+  section.append(node("h4", "", "Human review: acceptance criteria"));
+  section.append(node("p", "probe-note",
+    "Read the AI candidates and the manual baseline examples above. For each criterion, record whether each set covers it. These are reviewer-entered decisions, not automatic AI scores."));
+  const table = node("table", "reviewer-score-table");
+  const headings = node("tr", "");
+  for (const title of ["Acceptance criterion", "AI cases", "Manual cases"]) {
+    headings.append(node("th", "", title));
+  }
+  table.append(headings);
+  const choices = ["Not reviewed", "Covered", "Not covered"];
+  const ratings = criteria.map((criterion, index) => ({
+    index: index + 1, criterion, ai: "Not reviewed", manual: "Not reviewed"
+  }));
+  const summary = node("p", "lab-reviewer-summary",
+    "No acceptance criteria have been scored by a reviewer yet.");
+  const notes = node("textarea", "reviewer-notes");
+  notes.rows = 3;
+  notes.maxLength = 1000;
+  notes.placeholder = "Optional reviewer notes: missing steps, quality of expected results, or false positives";
+  notes.setAttribute("aria-label", "Reviewer comparison notes");
+  function calculate() {
+    const count = key => {
+      const reviewed = ratings.filter(item => item[key] !== "Not reviewed").length;
+      const covered = ratings.filter(item => item[key] === "Covered").length;
+      return { reviewed, covered, notCovered: reviewed - covered, total: ratings.length };
+    };
+    const ai = count("ai");
+    const manual = count("manual");
+    evaluation.reviewerAssessment = {
+      method: "HUMAN_REVIEWED_ACCEPTANCE_CRITERIA",
+      notAutomated: true,
+      criteria: ratings.map(item => ({ ...item })),
+      ai, manual,
+      notes: notes.value.slice(0, 1000),
+      updatedAt: new Date().toISOString()
+    };
+    const part = (label, item) => label + ": " + item.covered +
+      " covered / " + item.reviewed + " reviewed (of " + item.total + " criteria)";
+    summary.textContent = (ai.reviewed || manual.reviewed)
+      ? part("AI", ai) + " · " + part("Manual", manual) +
+        ". Unreviewed criteria are excluded from coverage conclusions."
+      : "No acceptance criteria have been scored by a reviewer yet.";
+  }
+  criteria.forEach((criterion, index) => {
+    const row = node("tr", "");
+    row.append(node("td", "", String(index + 1) + ". " + criterion));
+    for (const mode of ["ai","manual"]) {
+      const cell = node("td", "");
+      const control = node("select", "review-criterion-select review-" + mode);
+      control.setAttribute("aria-label", mode.toUpperCase() +
+        " coverage for acceptance criterion " + String(index + 1));
+      choices.forEach(choice => {
+        const option = node("option", "", choice);
+        option.value = choice;
+        control.append(option);
+      });
+      control.addEventListener("change", () => {
+        ratings[index][mode] = control.value;
+        calculate();
+      });
+      cell.append(control);
+      row.append(cell);
+    }
+    table.append(row);
+  });
+  notes.addEventListener("input", calculate);
+  section.append(table);
+  section.append(summary);
+  section.append(notes);
+  evaluationResult.append(section);
+  calculate();
+}
