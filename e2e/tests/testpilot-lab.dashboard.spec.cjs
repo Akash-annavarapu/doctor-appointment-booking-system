@@ -1,3 +1,4 @@
+const fs = require("node:fs/promises");
 "use strict";
 const { test, expect } = require("@playwright/test");
 
@@ -112,6 +113,20 @@ test("TC-0514 Lab compares mock model output to manual cases and prepares human-
   await expect(page.locator("#evaluation-result")).toContainText("4 generated candidates vs 3 manually designed");
   await expect(page.locator("#evaluation-result")).toContainText("NOT semantic coverage");
   await expect(page.locator("#export-evaluation-button")).toBeVisible();
+  await expect(page.locator(".lab-reviewer-summary")).toContainText("No acceptance criteria have been scored");
+  await page.locator(".review-ai").first().selectOption("Covered");
+  await page.locator(".review-manual").first().selectOption("Not covered");
+  await expect(page.locator(".lab-reviewer-summary")).toContainText("AI: 1 covered / 1 reviewed");
+  await expect(page.locator(".lab-reviewer-summary")).toContainText("Manual: 0 covered / 1 reviewed");
+  await page.locator(".reviewer-notes").fill("Reviewer checked an isolated fixture only.");
+  const downloadPending = page.waitForEvent("download");
+  await page.locator("#export-evaluation-button").click();
+  const downloaded = await downloadPending;
+  const comparison = JSON.parse(await fs.readFile(await downloaded.path(), "utf8"));
+  expect(comparison.reviewerAssessment.notAutomated).toBe(true);
+  expect(comparison.reviewerAssessment.ai.covered).toBe(1);
+  expect(comparison.reviewerAssessment.manual.notCovered).toBe(1);
+  expect(comparison.reviewerAssessment.notes).toContain("isolated fixture");
   await page.locator(".ai-case-approval").first().check();
   await page.locator("#browser-plan-button").click();
   await expect(page.locator("#browser-plan-result")).toContainText("TC-0502");
