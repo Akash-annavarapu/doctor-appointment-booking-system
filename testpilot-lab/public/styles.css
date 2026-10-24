@@ -271,3 +271,21 @@ button:hover:not(:disabled){transform:translateY(-1px)}
 .trace-table tr:nth-child(2n){background:#f9fbff}
 @media(max-width:970px){.traceability-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:620px){.traceability-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Explicit human-reviewed AI vs manual acceptance-criterion scoring */
+.reviewer-assessment{margin-top:18px;border-top:1px solid #e1eafa;padding-top:15px}
+.reviewer-assessment h4{font-size:13px;color:#234b86;margin:0 0 9px}
+.reviewer-score-table{width:100%;border-collapse:collapse;margin:13px 0;font-size:11px}
+.reviewer-score-table th,.reviewer-score-table td{padding:8px 6px;text-align:left;vertical-align:middle;border-bottom:1px solid #e2eaf7;line-height:1.5}
+.reviewer-score-table th{color:#375d9f;background:#eef4ff}
+.reviewer-score-table td:first-child{width:50%;color:#3c5270}
+.review-criterion-select{width:100%;min-width:95px;max-width:130px;padding:5px;border:1px solid #d6e2f5;border-radius:6px;background:#fff;color:#2e4c77;font-size:10px}
+.lab-reviewer-summary{color:#325a94;font-size:11px;font-weight:700;line-height:1.65;margin:11px 0}
+.reviewer-notes{display:block;width:100%;min-height:70px;padding:10px;border:1px solid #dce7f7;background:#fcfdff;border-radius:8px;color:#26415f;font:inherit;font-size:11px;resize:vertical}
+@media(max-width:620px){
+  .reviewer-score-table{font-size:10px}
+  .reviewer-score-table th,.reviewer-score-table td{padding:5px 4px}
+  .reviewer-score-table td:first-child{width:44%}
+  .review-criterion-select{min-width:0;font-size:10px;padding:3px;width:100%}
+}
