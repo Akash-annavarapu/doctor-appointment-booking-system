@@ -118,3 +118,20 @@ test("TC-0514 Lab compares mock model output to manual cases and prepares human-
   await expect(page.locator("#browser-plan-result")).toContainText("No browser tests have started");
   await expect(page.locator("#browser-plan-result")).toContainText("NOT a Gemini script execution");
 });
+
+
+test("TC-0515 Lab exposes the 25-story traceability matrix without claiming execution", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#traceability-button").click();
+  await expect(page.locator("#traceability-results tr")).toHaveCount(26);
+  await expect(page.locator("#traceability-summary")).toContainText("Stories");
+  await expect(page.locator("#traceability-summary")).toContainText("36");
+  await expect(page.locator("#traceability-results")).toContainText("US-005");
+  await expect(page.locator("#traceability-results")).toContainText("TC-0501");
+  await expect(page.locator("#traceability-message")).toContainText("not PASS/FAIL");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const overflow = await page.evaluate(
+    () => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+});
