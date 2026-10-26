@@ -4,7 +4,10 @@
 // These support related story workflows; they do not prove an arbitrary AI narrative passed.
 const WORKFLOW_URL = "https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/workflows/reviewed-playwright.yml";
 const CHECKS = Object.freeze([
+  { storyId:"US-001", testId:"TC-0508", description:"Registration required fields are enforced by browser validation (synthetic only)" },
+  { storyId:"US-001", testId:"TC-0509", description:"Seven-character registration password is blocked by browser validation (synthetic only)" },
   { storyId:"US-002", testId:"TC-0507", description:"Empty login form is rejected by browser validation" },
+  { storyId:"US-002", testId:"TC-0510", description:"Invalid email format prevents login form submission (synthetic only)" },
   { storyId:"US-004", testId:"TC-0506", description:"Unauthenticated access to the doctor directory redirects to login" },
   { storyId:"US-005", testId:"TC-0501", description:"The healthcare homepage renders its synthetic doctor cards" },
   { storyId:"US-005", testId:"TC-0502", description:"Doctor search and specialty filters narrow synthetic results" },
