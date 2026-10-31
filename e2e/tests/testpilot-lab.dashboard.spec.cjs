@@ -202,6 +202,7 @@ test("TC-0516 Lab displays actual-shaped failed CI screenshot without claiming m
   }));
   await page.goto("/");
   await page.locator("#load-ci-button").click();
+  await page.locator("#ci-results details.ci-case-details summary").click();
   await expect(page.locator(".ci-failure-screenshot")).toBeVisible();
   await expect(page.locator(".ci-failure-screenshot")).toHaveAttribute("src",/data:image\/png;base64,/);
   await expect(page.locator("#ci-results")).toContainText("Synthetic isolated assertion failed.");
