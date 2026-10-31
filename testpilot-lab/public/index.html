@@ -121,6 +121,16 @@
           <textarea id="missing-scenarios" rows="3" maxlength="2000" placeholder="Describe additional edge cases or gaps to add to the next prompt iteration."></textarea>
           <button type="button" id="save-review-button" class="primary">Save signed human-review decisions</button>
           <button type="button" id="export-review-button" class="ghost" hidden>↓ Export reviewed case set JSON</button>
+          <div class="lab-review-card">
+            <h4>Run reviewed scenario recipes in isolated Playwright</h4>
+            <p class="help">For every APPROVED case, choose a fixed source-reviewed execution recipe in the case card. Unsupported AI narratives must remain NEEDS_IMPLEMENTATION—not PASS. The resulting manifest contains no code, tokens, patient data, or production URL.</p>
+            <label for="isolated-reviewer">Reviewer identifier for this execution mapping</label>
+            <input id="isolated-reviewer" maxlength="60" placeholder="QA reviewer initials">
+            <button id="export-isolated-plan" type="button" class="ghost">↓ Export approved isolated plan JSON</button>
+            <button id="copy-isolated-plan" type="button" class="ghost">Copy plan JSON for GitHub Actions</button>
+            <a class="lab-workflow-link" href="https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/workflows/reviewed-generated-isolated.yml" target="_blank" rel="noopener noreferrer">Open manual isolated Playwright workflow ↗</a>
+            <p id="isolated-plan-status" class="message" role="status" aria-live="polite"></p>
+          </div>
           <div id="review-message" class="message" role="status" aria-live="polite">No case has been reviewed yet.</div>
         </section>
         <div id="generated-execution" class="ai-execution-box" hidden>
