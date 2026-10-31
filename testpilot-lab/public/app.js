@@ -95,6 +95,7 @@ function displayInspection(data) {
 function renderResult(data) {
   currentResult = data;
   currentReview = null;
+  document.querySelector("#review-panel").hidden = false;
   document.querySelector("#review-message").textContent = "No case has been reviewed yet.";
   document.querySelector("#export-review-button").hidden = true;
   clearMessage();
