@@ -117,7 +117,8 @@ function renderResult(data) {
     const card = node("article", "test-card");
     const top = node("div", "case-top");
     top.append(node("span", "case-id", item.id));
-    top.append(node("span", "type-chip", item.type));
+    top.append(node("span", "type-chip", (item.scenarioGroup || item.type) +
+      (item.scenarioGroup && item.scenarioGroup !== item.type ? " · " + item.type : "")));
     top.append(node("span", "priority", item.priority));
     top.append(node("span", "not-run", "NOT RUN"));
     const reviewLabel = node("label", "approval-label");
@@ -176,7 +177,11 @@ function renderResult(data) {
   showMessage("AI candidates generated for " + data.storyId + ". " +
     (data.inspection?.inspectionStatus === "PARTIAL"
       ? "Only partial healthcare evidence was available; review the assumptions carefully. "
-      : "") + "All cases are NOT RUN until independently verified.");
+      : "") +
+    (Array.isArray(data.coverageWarnings) && data.coverageWarnings.length
+      ? "Coverage gaps: " + data.coverageWarnings.join(" ") + " "
+      : "") +
+    "All cases are NOT RUN until independently verified.");
 }
 
 function setBusy(active, action) {
