@@ -67,3 +67,9 @@ The above is a **technical source review**, not a claim of independent team/huma
 | PENDING NEW CI RUN | PENDING | PENDING | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
 
 Do not substitute the old 188 passing prewritten checks for these new case IDs.
+
+## Additional classified source-derived Playwright coverage
+
+The suite `e2e/tests/story-category.api.spec.cjs` executes the real isolated healthcare API for **US-001 registration** (positive valid input, negative seven-character password, boundary eight-character password) and **US-005 doctor discovery** (approved-only filtering and empty-directory edge). These five checks are based on documented acceptance criteria, **not** authenticated Gemini-output records. Include them as independently reviewed story-derived tests, not as AI-execution success.
+
+AI-017 and US-018 checks together with these scenario tests make a demonstrable positive/negative/edge classification across three user stories without touching production.
