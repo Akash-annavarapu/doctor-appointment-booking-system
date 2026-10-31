@@ -234,7 +234,16 @@ function geminiResponseSchema(storyId) {
   return output;
 }
 
-async function generateCases({ story, inspection, fetchImpl = fetch }) {
+const PROMPT_VARIANTS = Object.freeze({
+  baseline: "Produce a balanced test case set following the verified requirements.",
+  boundary: "Prioritize date and field-length boundaries, missing values, and duplicate-state edge cases when the requirement permits.",
+  authorization: "Prioritize role-based denial, invalid authentication and privacy checks without inventing privileged endpoints.",
+  assertions: "Prefer concrete expected API codes, exact state transitions and verifiable oracles; avoid vague success predictions."
+});
+
+async function generateCases({ story, inspection, promptVariant = "baseline", fetchImpl = fetch }) {
+  if (!Object.hasOwn(PROMPT_VARIANTS, promptVariant))
+    throw new ApiError(400, "Unknown reviewed prompt variant.");
   const { provider, model, key } = activeAiConfig();
   if (!key) {
     throw new ApiError(503, provider === "gemini"
@@ -250,7 +259,8 @@ async function generateCases({ story, inspection, fetchImpl = fetch }) {
     "Never produce credentials, real patient data, private documents, shell commands, network exploit instructions or destructive test actions.",
     "Use synthetic input descriptions. Do not execute tests. All results remain NOT_RUN until reviewed.",
     "Assign probeId only when your case explicitly tests exactly that eligible read-only probe; otherwise use NONE. Never assign unrelated probes or suggest unsafe production writes.",
-    "Use distinct IDs AI-001 through AI-008, each title under 120 characters, and output only the requested JSON."
+    "Use distinct IDs AI-001 through AI-008, each title under 120 characters, and output only the requested JSON.",
+    PROMPT_VARIANTS[promptVariant]
   ].join(" ");
   const input = JSON.stringify({
     target: story.target, actor: story.actor, useCase: story.useCase,
@@ -574,10 +584,12 @@ async function handle(req, res) {
         ? "Free Gemini generation is not configured. Add GEMINI_API_KEY to the Lab's Render environment."
         : "OpenAI generation is not configured. Add OPENAI_API_KEY to the Lab's Render environment.");
       const inspection = await inspectSut(targetUrl);
-      const cases = await generateCases({ story, inspection });
+      const promptVariant = payload.promptVariant || "baseline";
+      const cases = await generateCases({ story, inspection, promptVariant });
       return json(res, 200, { success: true, storyId: story.id, targetUrl, inspection,
         generatedBy: provider === "gemini" ? "Google Gemini" : "OpenAI",
         model: activeAiConfig().model, promptVersion: "proposal-v2-2026-10-31",
+        promptVariant,
         generatedAt: new Date().toISOString(),
         executionStatus: "NOT_RUN", cases,
         receipt: issueReceipt(story.id, targetUrl, cases) });
