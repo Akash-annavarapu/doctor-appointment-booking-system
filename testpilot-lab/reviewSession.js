@@ -70,8 +70,10 @@ function mac(body) {
 }
 function issueReviewReceipt(storyId, targetUrl, generationReceipt, decisions, now = Date.now()) {
   const body = Buffer.from(JSON.stringify({
-    storyId, targetUrl, generationReceipt,
-    decisions, issuedAt: now, nonce: crypto.randomUUID()
+    storyId, targetUrl,
+    generationDigest: crypto.createHash("sha256").update(generationReceipt).digest("hex"),
+    decisionsDigest: crypto.createHash("sha256").update(JSON.stringify(decisions)).digest("hex"),
+    issuedAt: now, nonce: crypto.randomUUID()
   })).toString("base64url");
   return body + "." + mac(body);
 }
@@ -90,8 +92,8 @@ function verifyReviewReceipt(receipt, storyId, targetUrl, generationReceipt, dec
   try { payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")); }
   catch { throw Error("Invalid reviewed decision receipt."); }
   if (!payload || payload.storyId !== storyId || payload.targetUrl !== targetUrl ||
-      payload.generationReceipt !== generationReceipt ||
-      JSON.stringify(payload.decisions) !== JSON.stringify(decisions) ||
+      payload.generationDigest !== crypto.createHash("sha256").update(generationReceipt).digest("hex") ||
+      payload.decisionsDigest !== crypto.createHash("sha256").update(JSON.stringify(decisions)).digest("hex") ||
       !Number.isFinite(payload.issuedAt) || payload.issuedAt > now ||
       now - payload.issuedAt > TTL) {
     throw Error("Review changed, expired or does not match the generation.");
