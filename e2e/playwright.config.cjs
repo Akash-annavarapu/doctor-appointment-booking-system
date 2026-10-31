@@ -33,6 +33,15 @@ module.exports = defineConfig({
       env: { PORT: "4188", AI_PROVIDER: "gemini", GEMINI_API_KEY: "", LAB_ACCESS_CODE: "" },
       reuseExistingServer: !process.env.CI,
       timeout: 30000
-    }
+    },
+    ...(process.env.TESTPILOT_ISOLATED_API === "1" ? [{
+      // Genuine API writes only to disposable localhost MongoDB. Never production.
+      command: "node ../server/server.js",
+      url: "http://127.0.0.1:5199/",
+      env: { PORT: "5199", NODE_ENV: "test", MONGO_URI: process.env.MONGO_URI_TEST,
+        JWT_SECRET: process.env.JWT_SECRET },
+      reuseExistingServer: false,
+      timeout: 90000
+    }] : [])
   ]
 });
