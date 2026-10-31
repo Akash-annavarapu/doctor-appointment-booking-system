@@ -60,13 +60,23 @@ The Playwright config starts the disposable local healthcare API only in the iso
 
 The above is a **technical source review**, not a claim of independent team/human approval. The team must confirm the mapping from each archived Gemini case to its Playwright assertion and sign off on altered inputs, before presenting the case set as fully validated. For other stories, particularly registration and doctor filtering, complete the same story -> generated case -> reviewed script -> execution ID chain. The previous AI-vs-manual report remains preliminary until team sign-off.
 
-## Final result template (fill only from actual CI evidence)
+## Verified execution result (GitHub Actions, 31 October 2026)
 
-| GitHub Actions run URL | Commit SHA | UTC date | AI-001 | AI-002 | AI-003 | AI-004 | US-018 edge |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| PENDING NEW CI RUN | PENDING | PENDING | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+**Evidence:** [TestPilot regression checks — pull request run 41181712216](https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/runs/41181712216), commit `5cfeac61`.
 
-Do not substitute the old 188 passing prewritten checks for these new case IDs.
+| Case | Category | Playwright result |
+| --- | --- | --- |
+| AI-001 (US-017) | Positive | PASS |
+| AI-002 (US-017) | Negative | PASS |
+| AI-003 (US-017) | Negative | PASS |
+| AI-004 (US-017) | Security / negative | PASS |
+| US-018 (source-derived, not AI) | Edge / concurrency | PASS |
+| US-001 registration (3 source-derived) | Positive, negative, boundary | 3 PASS |
+| US-005 doctor directory (2 source-derived) | Positive/negative, empty-state edge | 2 PASS |
+
+The workflow reported **26 Playwright tests passed, 0 failed**, including ten new checks; backend and frontend jobs also succeeded. This is **real isolated staging-style execution**, not tests against production patient data. The implementation was merged to `main` as squash commit `b5120c79` after the passing pull request run.
+
+**Review boundary:** TestPilot's archived Gemini export is used for AI-001–AI-004 intent mapping, but the reviewed Playwright input fields were adapted to the backend's actual API contract and synthetic fixtures. Final independent **human** sign-off remains pending. Original Gemini generated **no US-017 edge/concurrency case**; the separate US-018 edge scenario is sourced from the documented requirements. Do not claim that Gemini generated five booking cases or that all twelve generated cases from the earlier three-story study have been executed.
 
 ## Additional classified source-derived Playwright coverage
 
