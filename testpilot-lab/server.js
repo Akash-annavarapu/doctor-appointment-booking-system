@@ -197,7 +197,10 @@ function validateGenerated(output, storyId) {
     if (probeId !== "NONE" && !eligible.has(probeId)) {
       throw new ApiError(502, "LLM assigned a probe unrelated to the selected user story.");
     }
-    return { id: item.id, title: item.title, type: item.type, priority: item.priority,
+    const scenarioGroup = item.type === "positive" ? "positive"
+      : ["boundary", "state", "concurrency"].includes(item.type) ? "edge" : "negative";
+    return { id: item.id, title: item.title, type: item.type, scenarioGroup,
+      priority: item.priority,
       preconditions: item.preconditions, steps: item.steps, testData: item.testData,
       expectedResult: probeId === "NONE" ? item.expectedResult : eligible.get(probeId).expected,
       probeId, executionStatus: "NOT_RUN", reviewed: false };
@@ -586,7 +589,13 @@ async function handle(req, res) {
       const inspection = await inspectSut(targetUrl);
       const promptVariant = payload.promptVariant || "baseline";
       const cases = await generateCases({ story, inspection, promptVariant });
+      const scenarioCounts = Object.fromEntries(["positive", "negative", "edge"].map(kind =>
+        [kind, cases.filter(item => item.scenarioGroup === kind).length]));
+      const coverageWarnings = Object.entries(scenarioCounts)
+        .filter(([, n]) => n === 0)
+        .map(([kind]) => "No " + kind + " scenario was generated. Flag the gap and adjust the prompt.");
       return json(res, 200, { success: true, storyId: story.id, targetUrl, inspection,
+        scenarioCounts, coverageWarnings,
         generatedBy: provider === "gemini" ? "Google Gemini" : "OpenAI",
         model: activeAiConfig().model, promptVersion: "proposal-v2-2026-10-31",
         promptVariant,
