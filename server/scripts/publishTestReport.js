@@ -32,7 +32,9 @@ function toTestPilotReport(results, suite) {
       status,
       executionTime: Number.isFinite(test.duration) && test.duration >= 0 ? Math.floor(test.duration) : 0,
       errorLog: status === "FAIL"
-        ? (test.failureMessages || []).join("\n").slice(0, 1000) : null
+        ? (test.failureMessages || []).join("\n").slice(0, 1000) : null,
+      screenshotBase64: status === "FAIL" && suite === "playwright-chromium"
+        ? test.screenshotBase64 || null : null
     };
   });
   const passed = testResults.filter(t => t.status === "PASS").length;

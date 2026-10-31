@@ -121,6 +121,16 @@
           <textarea id="missing-scenarios" rows="3" maxlength="2000" placeholder="Describe additional edge cases or gaps to add to the next prompt iteration."></textarea>
           <button type="button" id="save-review-button" class="primary">Save signed human-review decisions</button>
           <button type="button" id="export-review-button" class="ghost" hidden>↓ Export reviewed case set JSON</button>
+          <div class="lab-review-card">
+            <h4>Run reviewed scenario recipes in isolated Playwright</h4>
+            <p class="help">For every APPROVED case, choose a fixed source-reviewed execution recipe in the case card. Unsupported AI narratives must remain NEEDS_IMPLEMENTATION—not PASS. The resulting manifest contains no code, tokens, patient data, or production URL.</p>
+            <label for="isolated-reviewer">Reviewer identifier for this execution mapping</label>
+            <input id="isolated-reviewer" maxlength="60" placeholder="QA reviewer initials">
+            <button id="export-isolated-plan" type="button" class="ghost">↓ Export approved isolated plan JSON</button>
+            <button id="copy-isolated-plan" type="button" class="ghost">Copy plan JSON for GitHub Actions</button>
+            <a class="lab-workflow-link" href="https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/workflows/reviewed-generated-isolated.yml" target="_blank" rel="noopener noreferrer">Open manual isolated Playwright workflow ↗</a>
+            <p id="isolated-plan-status" class="message" role="status" aria-live="polite"></p>
+          </div>
           <div id="review-message" class="message" role="status" aria-live="polite">No case has been reviewed yet.</div>
         </section>
         <div id="generated-execution" class="ai-execution-box" hidden>
@@ -147,6 +157,37 @@
         </div>
       </section>
     </div>
+    <section class="panel execution-panel" aria-labelledby="peer-study-heading">
+      <div class="panel-heading"><span class="step-number">★</span><div><p class="kicker">HUMAN VALIDATION</p><h2 id="peer-study-heading">Independent reviews and peer usability sessions</h2></div></div>
+      <div class="execution-body">
+        <p class="lead-small">Two different QA reviewers must independently score the SAME original generated case set. Their disagreements are shown explicitly and require real participant resolution. Completing this form does not authenticate a person's identity.</p>
+        <label for="peer-reviewer">Reviewer identifier (e.g., initials)</label>
+        <input id="peer-reviewer" maxlength="60" placeholder="Reviewer 1 initials" autocomplete="off">
+        <div id="peer-review-criteria" class="traceability-table-wrap">
+          <p class="help">Generate a real AI test set above to display its acceptance criteria.</p>
+        </div>
+        <button type="button" class="primary" id="save-peer-review">Save this independent review</button>
+        <button type="button" class="ghost" id="compare-peer-reviews">Compare two reviewers</button>
+        <button type="button" class="ghost" id="export-peer-reviews">↓ Export review evidence</button>
+        <div id="peer-review-status" class="message" role="status" aria-live="polite"></div>
+        <div id="peer-review-comparison" class="run-results"></div>
+        <h3>Peer usability observation</h3>
+        <p class="help">Obtain participant consent, start the observation, then record actual task outcomes and feedback. Never count a simulated automated test as a human peer session.</p>
+        <label for="peer-participant">Participant initials</label>
+        <input id="peer-participant" maxlength="60" autocomplete="off" placeholder="Voluntary participant initials">
+        <label for="peer-browser">Device and browser</label>
+        <input id="peer-browser" maxlength="80" placeholder="Desktop Chrome">
+        <label for="peer-consent"><input id="peer-consent" type="checkbox"> Participant consents to recording de-identified usability feedback</label>
+        <button type="button" class="ghost" id="start-peer-timer">Start observation timer</button>
+        <p id="peer-timer-status" class="probe-note">Observation not started.</p>
+        <div id="peer-task-list" class="peer-task-list"></div>
+        <label for="peer-feedback">Specific observed difficulty, feedback and suggested change</label>
+        <textarea id="peer-feedback" rows="3" maxlength="1500" placeholder="Describe what actually happened in the session."></textarea>
+        <button type="button" class="primary" id="save-peer-session">Record measured peer session</button>
+        <button type="button" class="ghost" id="export-peer-sessions">↓ Export usability sessions</button>
+        <p id="peer-session-status" class="message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
     <section class="panel execution-panel" aria-labelledby="prompt-log-heading">
       <div class="panel-heading"><span class="step-number">★</span><div><p class="kicker">FACULTY EVIDENCE</p><h2 id="prompt-log-heading">Prompt engineering experiment log</h2></div></div>
       <div class="execution-body">

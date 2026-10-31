@@ -182,3 +182,59 @@ test("TC-0515 Lab exposes the 25-story traceability matrix without claiming exec
   );
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+
+test("TC-0516 Lab displays actual-shaped failed CI screenshot without claiming model execution", async ({page})=>{
+  const png="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==";
+  await page.route("**/api/ci-results",route=>route.fulfill({
+    status:200,contentType:"application/json",body:JSON.stringify({
+      success:true,runs:[{
+        runId:"12345678:1:playwright-chromium",timestamp:new Date().toISOString(),
+        suite:"playwright-chromium",engine:"Static-CI",
+        evidenceRunUrl:"https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/runs/12345678",
+        summary:{total:1,passed:0,failed:1,skipped:0,durationMs:32},
+        testResults:[{id:"TC-0508",title:"Synthetic failure preview",
+          status:"FAIL",executionTime:32,
+          failureDetail:"Synthetic isolated assertion failed.",
+          screenshotDataUrl:"data:image/png;base64,"+png}]
+      }]
+    })
+  }));
+  await page.goto("/");
+  await page.locator("#load-ci-button").click();
+  await page.locator("#ci-results details.ci-case-details summary").click();
+  await expect(page.locator(".ci-failure-screenshot")).toBeVisible();
+  await expect(page.locator(".ci-failure-screenshot")).toHaveAttribute("src",/data:image\/png;base64,/);
+  await expect(page.locator("#ci-results")).toContainText("Synthetic isolated assertion failed.");
+  await expect(page.locator("#ci-results a.lab-workflow-link"))
+    .toHaveAttribute("href",/actions\/runs\/12345678/);
+});
+
+test("TC-0517 Lab records only consent-based measured peer observations",async ({page})=>{
+  await page.route("**/api/peer-study",async route=>{
+    const sent=route.request().postDataJSON();
+    if(sent.action!=="session")return route.fulfill({status:400,
+      contentType:"application/json",body:JSON.stringify({message:"Unexpected action"})});
+    return route.fulfill({status:200,contentType:"application/json",
+      body:JSON.stringify({success:true,record:{
+        ...sent.session,recordedAt:new Date().toISOString(),
+        identityVerified:false,source:"participant-entered-observation-not-automated-test"}})});
+  });
+  await page.goto("/");
+  await page.locator("#access-code").fill("synthetic-fixture-only-code");
+  await page.locator("#peer-participant").fill("Peer A");
+  await page.locator("#peer-browser").fill("Desktop Chrome");
+  await page.locator("#peer-feedback").fill("Participant needed clearer distinction between PASS and NOT_RUN.");
+  await page.locator("#start-peer-timer").click();
+  await page.locator("#save-peer-session").click();
+  await expect(page.locator("#peer-session-status")).toContainText("Participant consent");
+  await page.locator("#peer-consent").check();
+  await page.locator("#save-peer-session").click();
+  await expect(page.locator("#peer-session-status")).toContainText("1 genuine");
+  const pending=page.waitForEvent("download");
+  await page.locator("#export-peer-sessions").click();
+  const download=await pending;
+  const data=JSON.parse(await fs.readFile(await download.path(),"utf8"));
+  expect(data.participants[0].identityVerified).toBe(false);
+  expect(data.participants[0].consent).toBe(true);
+});

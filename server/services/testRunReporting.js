@@ -18,6 +18,25 @@ function safeError(value) {
     .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, "[EMAIL REDACTED]");
 }
 
+function safeScreenshot(value, meta) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string" || value.length > 160000 ||
+      meta.engine !== "Static-CI" || meta.suite !== "playwright-chromium" ||
+      meta.status !== "FAIL" ||
+      !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
+    throw new ReportError("Screenshots require a failed, isolated Playwright CI assertion and bounded PNG bytes.");
+  }
+  let bytes;
+  try { bytes = Buffer.from(value, "base64"); }
+  catch { throw new ReportError("Invalid PNG screenshot."); }
+  const png = Buffer.from([137,80,78,71,13,10,26,10]);
+  if (bytes.length < 67 || bytes.length > 120000 ||
+      !bytes.subarray(0,8).equals(png) ||
+      bytes.toString("base64") !== value) {
+    throw new ReportError("Screenshot must be a bounded base64 PNG.");
+  }
+  return value;
+}
 const isCount = n => Number.isSafeInteger(n) && n >= 0;
 function validateReport(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
@@ -45,6 +64,7 @@ function validateReport(input) {
   }
   const ids = new Set();
   let passes = 0;
+  let capturedScreenshots = 0;
   const results = testResults.map(item => {
     if (!item || typeof item !== "object" ||
         typeof item.id !== "string" || !/^(?:TP|TC)-\d{3,5}$/.test(item.id) ||
@@ -57,10 +77,14 @@ function validateReport(input) {
     }
     ids.add(item.id);
     if (item.status === "PASS") passes++;
+    const screenshotBase64 = safeScreenshot(item.screenshotBase64,
+      { engine, suite, status: item.status });
+    if (screenshotBase64 && ++capturedScreenshots > 1)
+      throw new ReportError("At most one synthetic failure screenshot per published run.");
     return {
       id: item.id, title: item.title.trim(), category: item.category,
       status: item.status, executionTime: item.executionTime,
-      errorLog: safeError(item.errorLog)
+      errorLog: safeError(item.errorLog), screenshotBase64
     };
   });
   if (passes !== summary.passed) throw new ReportError("Result statuses disagree with summary.");
@@ -83,8 +107,18 @@ function publicReport(document) {
     suite: document.suite,
     engine: document.engine,
     summary: document.summary,
-    testResults: document.testResults.map(({ id, title, category, status, executionTime }) => ({
-      id, title, category, status, executionTime, errorLog: null
+    evidenceRunUrl: /^[0-9]+:[0-9]+:/.test(document.runId)
+      ? "https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/runs/" +
+        document.runId.split(":")[0] : null,
+    testResults: document.testResults.map(({ id, title, category, status,
+      executionTime, screenshotBase64 }) => ({
+      id, title, category, status, executionTime,
+      errorLog: null,
+      failureDetail: status === "FAIL"
+        ? "Isolated Playwright assertion failed. Inspect uploaded CI report and trace for details."
+        : null,
+      screenshotDataUrl: status === "FAIL" && screenshotBase64
+        ? "data:image/png;base64," + screenshotBase64 : null
     }))
   };
 }

@@ -96,6 +96,7 @@ function renderResult(data) {
   currentResult = data;
   currentReview = null;
   document.querySelector("#review-panel").hidden = false;
+  renderPeerReviewForm();
   document.querySelector("#review-message").textContent = "No case has been reviewed yet.";
   document.querySelector("#export-review-button").hidden = true;
   clearMessage();
@@ -158,6 +159,19 @@ function renderResult(data) {
       editor.value = value;
       card.append(fieldLabel, editor);
     }
+    const recipes = {
+      "US-001":[["register_valid","Valid registration"],["register_weak_password","Weak password rejected"],["register_boundary_password","Eight-character boundary"]],
+      "US-005":[["approved_doctor_only","Approved-only directory"],["empty_doctor_catalog","Empty approved directory"]],
+      "US-017":[["booking_valid","Successful booking"],["booking_conflict","Duplicate booking"],["booking_missing_fields","Required fields"],["booking_unauthenticated","Unauthenticated booking"],["booking_concurrent","Concurrent booking"],["booking_outside_hours","Out-of-hours booking"]]
+    };
+    const recipeLabel=node("label","review-field-label","Isolated executable recipe (optional; reviewed human mapping)");
+    const recipeSelect=node("select","reviewed-recipe");
+    recipeSelect.setAttribute("aria-label","Isolated scenario recipe for "+item.id);
+    recipeSelect.append(new Option("Unsupported / needs engineering", ""));
+    for (const [value,label] of recipes[data.storyId] || []) {
+      const option=node("option","",label); option.value=value; recipeSelect.append(option);
+    }
+    card.append(recipeLabel,recipeSelect);
     const noteLabel = node("label", "review-field-label", "Reviewer note / identified gap");
     const notes = node("textarea", "review-notes");
     notes.rows = 2;
@@ -358,6 +372,41 @@ document.querySelector("#export-review-button").addEventListener("click", () => 
     executionScope: "HUMAN_REVIEWED_PROBE_ONLY"
   });
 });
+function buildIsolatedPlan() {
+  const approved = approvedReviewIds();
+  const reviewer = document.querySelector("#isolated-reviewer").value.trim();
+  if (!reviewer || reviewer.length > 60) throw Error("Enter the actual reviewer identifier.");
+  const mappings = approved.map(id => {
+    const card=[...caseBox.querySelectorAll(".test-card")].find(el=>el.dataset.caseId===id);
+    const recipe=card.querySelector(".reviewed-recipe").value;
+    const item=currentReview.review.cases.find(x=>x.id===id);
+    return { id, title:item.title, decision:"APPROVED", recipe };
+  });
+  const unsupported=mappings.filter(x=>!x.recipe);
+  if(unsupported.length)throw Error("Unsupported approved cases: "+
+    unsupported.map(x=>x.id).join(", ")+". Implement a reviewed recipe or mark these NEEDS_IMPLEMENTATION, not PASS.");
+  return {format:"reviewed-isolated-plan-v1",reviewedBy:reviewer,
+    storyId:currentResult.storyId,cases:mappings,
+    note:"Execution maps reviewer-approved LLM scenario intent to fixed localhost API recipes; it does not run raw model-authored steps."};
+}
+document.querySelector("#export-isolated-plan").addEventListener("click",()=>{
+  const status=document.querySelector("#isolated-plan-status");
+  try{
+    const plan=buildIsolatedPlan();
+    exportJsonFile("testpilot-approved-isolated-plan.json",plan);
+    status.textContent="Exported "+plan.cases.length+" reviewed mapping(s). Paste its JSON in the manual GitHub workflow. Not executed yet.";
+    status.className="message success";
+  }catch(error){status.textContent=error.message;status.className="message error";}
+});
+document.querySelector("#copy-isolated-plan").addEventListener("click",async()=>{
+  const status=document.querySelector("#isolated-plan-status");
+  try{
+    const plan=buildIsolatedPlan();
+    await navigator.clipboard.writeText(JSON.stringify(plan));
+    status.textContent="Copied JSON for the manual GitHub workflow. The tests are NOT RUN until the workflow reports a real outcome.";
+    status.className="message success";
+  }catch(error){status.textContent=error.message;status.className="message error";}
+});
 function exportJsonFile(filename, payload) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const blobUrl = URL.createObjectURL(blob);
@@ -481,6 +530,13 @@ loadCiButton.addEventListener("click", async () => {
       item.append(node("p", "", "Total: " + run.summary.total + " · Passed: " + run.summary.passed +
         " · Failed: " + run.summary.failed + " · Skipped: " + run.summary.skipped));
       item.append(node("small", "", "Run " + run.runId + " · " + run.timestamp + " · " + run.engine));
+      if (typeof run.evidenceRunUrl === "string" &&
+          /^https:\/\/github\.com\/Akash-annavarapu\/doctor-appointment-booking-system\/actions\/runs\/\d+$/.test(run.evidenceRunUrl)) {
+        const evidence=node("a","lab-workflow-link","Open full Playwright report, failures and traces ↗");
+        evidence.href=run.evidenceRunUrl;
+        evidence.target="_blank";evidence.rel="noopener noreferrer";
+        item.append(evidence);
+      }
       if (Array.isArray(run.testResults) && run.testResults.length) {
         const details = node("details", "ci-case-details");
         details.append(node("summary", "", "View " + run.testResults.length + " measured assertions"));
@@ -490,6 +546,23 @@ loadCiButton.addEventListener("click", async () => {
           row.append(node("span", "ci-case-id", measured.id));
           row.append(node("span", "", measured.title));
           row.append(node("span", "status-chip " + measured.status.toLowerCase(), measured.status));
+          if (measured.status === "FAIL") {
+            const detail=node("p","ci-failure-detail",measured.failureDetail ||
+              "Assertion failed. Inspect the original GitHub report for details.");
+            row.append(detail);
+            if (typeof measured.screenshotDataUrl==="string" &&
+                /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(measured.screenshotDataUrl) &&
+                measured.screenshotDataUrl.length<160100) {
+              const preview=node("img","ci-failure-screenshot");
+              preview.src=measured.screenshotDataUrl;
+              preview.alt="Actual synthetic Playwright failure screenshot for "+measured.id;
+              preview.loading="lazy";
+              row.append(preview);
+            } else {
+              row.append(node("small","probe-note",
+                "No inline screenshot for this test (e.g., API-only or oversized capture)."));
+            }
+          }
           rows.append(row);
         }
         details.append(rows);
@@ -896,3 +969,170 @@ document.querySelector("#export-prompt-log").addEventListener("click", () => {
   });
 });
 saveExperimentLog();
+
+
+// Independent human evidence is collected only after human interaction.
+// No test fixture or programmatic case generation can create human sign-off.
+let peerReviews = [];
+let peerSessions = [];
+let peerStartedAt = null;
+const PEER_TASKS = [
+  ["enter_story", "Choose and enter a real documented user story"],
+  ["generate", "Generate and inspect AI cases"],
+  ["edit_review", "Edit a case and identify a gap"],
+  ["approve_reject", "Approve and reject scenarios"],
+  ["inspect_report", "Distinguish PASS from NOT_RUN and inspect evidence"],
+  ["export", "Export reviewed results and quality log"]
+];
+for (const [task, label] of PEER_TASKS) {
+  const item = node("label", "peer-task");
+  item.append(node("span", "", label));
+  const select = node("select", "peer-task-result");
+  select.dataset.task = task;
+  for (const [value, name] of [
+    ["not_attempted", "Not attempted"], ["completed", "Completed"], ["blocked", "Blocked"]]) {
+    const option = node("option", "", name); option.value = value; select.append(option);
+  }
+  item.append(select);
+  document.querySelector("#peer-task-list").append(item);
+}
+
+function currentPeerCriteria() {
+  return stories.find(item => item.id === currentResult?.storyId)?.acceptanceCriteria || [];
+}
+function renderPeerReviewForm() {
+  peerReviews = [];
+  document.querySelector("#peer-review-comparison").replaceChildren();
+  const root = document.querySelector("#peer-review-criteria");
+  root.replaceChildren();
+  if (!currentResult?.receipt) return;
+  const table = node("table", "reviewer-score-table");
+  const header = node("tr");
+  for (const label of ["Acceptance criterion", "AI cases", "Manual baseline", "Reviewer case IDs and steps"]) {
+    header.append(node("th", "", label));
+  }
+  table.append(header);
+  for (const [i, criterion] of currentPeerCriteria().entries()) {
+    const tr = node("tr", "peer-review-row");
+    tr.dataset.index = String(i);
+    tr.append(node("td", "", criterion));
+    for (const tag of ["ai", "manual"]) {
+      const td = node("td");
+      const control = node("select", "peer-review-" + tag);
+      for (const [value, label] of [
+        ["not_reviewed", "Not reviewed"], ["covered", "Covered"],
+        ["not_covered", "Not covered"]]) {
+        const option = node("option", "", label); option.value = value; control.append(option);
+      }
+      td.append(control); tr.append(td);
+    }
+    const td = node("td");
+    const evidence = node("textarea", "peer-review-evidence");
+    evidence.maxLength = 1000; evidence.rows = 2; evidence.placeholder = "AI-001 step 2; TP-011 expected result";
+    td.append(evidence);tr.append(td); table.append(tr);
+  }
+  root.append(table);
+  document.querySelector("#peer-review-status").textContent = "Separate, independent reviews must be entered by two real people.";
+}
+document.querySelector("#save-peer-review").addEventListener("click", async () => {
+  const status = document.querySelector("#peer-review-status");
+  try {
+    if (!currentResult?.receipt) throw Error("Generate a real case set first.");
+    const hashBuffer = await crypto.subtle.digest("SHA-256",
+      new TextEncoder().encode(JSON.stringify(currentResult.cases)));
+    const caseSetHash = [...new Uint8Array(hashBuffer)].map(b=>b.toString(16).padStart(2,"0")).join("");
+    const assessments = [...document.querySelectorAll(".peer-review-row")].map((tr,i)=>({
+      criterion:currentPeerCriteria()[i],
+      ai:tr.querySelector(".peer-review-ai").value,
+      manual:tr.querySelector(".peer-review-manual").value,
+      evidence:tr.querySelector(".peer-review-evidence").value.trim()
+    }));
+    const reviewer = document.querySelector("#peer-reviewer").value.trim();
+    if (peerReviews.some(record=>record.reviewer.toLowerCase()===reviewer.toLowerCase()))
+      throw Error("This reviewer has already submitted. The second review must be independent.");
+    const reply = await request("/api/peer-study", {
+      ...candidateReviewPayload(),action:"review",
+      review:{reviewer,caseSetHash,assessments}
+    });
+    peerReviews.push(reply.record);
+    status.textContent = peerReviews.length + " distinct review(s) saved; goal 2.";
+    status.className = "message success";
+    document.querySelector("#peer-reviewer").value = "";
+    document.querySelectorAll(".peer-review-ai,.peer-review-manual")
+      .forEach(select => select.value="not_reviewed");
+    document.querySelectorAll(".peer-review-evidence").forEach(el=>el.value="");
+  } catch(error){status.textContent=error.message;status.className="message error";}
+});
+document.querySelector("#compare-peer-reviews").addEventListener("click", async () => {
+  const root=document.querySelector("#peer-review-comparison");root.replaceChildren();
+  try {
+    if(peerReviews.length<2)throw Error("Two real, distinct reviewer submissions are required.");
+    const reply=await request("/api/peer-study", {
+      ...candidateReviewPayload(),action:"compare",first:peerReviews[0],second:peerReviews[1]
+    });
+    root.append(node("p","lab-evaluation-summary",reply.comparison.agreed+
+      " of "+reply.comparison.total+" criteria agree. "+reply.comparison.disagreements.length+
+      " disagreement(s) require human discussion."));
+    for(const difference of reply.comparison.disagreements) {
+      const p=node("p","probe-note",difference.criterion+": "+
+        peerReviews[0].reviewer+" AI="+difference.first.ai+" / manual="+difference.first.manual+
+        "; "+peerReviews[1].reviewer+" AI="+difference.second.ai+" / manual="+difference.second.manual);
+      root.append(p);
+    }
+    root.append(node("p","lab-review-disclaimer",
+      "No independent identity authentication or final reviewer sign-off is implied. Export and resolve disagreements with both reviewers."));
+  }catch(error){root.append(node("p","message error",error.message));}
+});
+document.querySelector("#export-peer-reviews").addEventListener("click",()=>{
+  if (!peerReviews.length) return;
+  exportJsonFile("testpilot-independent-human-reviews.json",{
+    storyId:currentResult?.storyId, generatedAt:currentResult?.generatedAt,
+    reviewers:peerReviews,
+    independentIdentityAuthenticated:false,
+    status:peerReviews.length>=2?"TWO_SELF_DECLARED_REVIEWS_RECORDED":"INCOMPLETE"
+  });
+});
+
+document.querySelector("#start-peer-timer").addEventListener("click",()=>{
+  peerStartedAt=performance.now();
+  document.querySelector("#peer-timer-status").textContent =
+    "Observation started. Finish the tasks before saving the session.";
+});
+document.querySelector("#save-peer-session").addEventListener("click",async()=>{
+  const status=document.querySelector("#peer-session-status");
+  try{
+    if(peerStartedAt===null)throw Error("Start the observation timer before the actual session.");
+    if(!document.querySelector("#peer-consent").checked)
+      throw Error("Participant consent is required before recording usability feedback.");
+    const session = {
+      consent:document.querySelector("#peer-consent").checked,
+      participant:document.querySelector("#peer-participant").value,
+      browser:document.querySelector("#peer-browser").value,
+      durationSeconds:Math.max(1,Math.round((performance.now()-peerStartedAt)/1000)),
+      tasks:[...document.querySelectorAll(".peer-task-result")].map(el=>({
+        task:el.dataset.task,result:el.value
+      })),
+      feedback:document.querySelector("#peer-feedback").value
+    };
+    if(peerSessions.some(p=>p.participant.toLowerCase()===session.participant.trim().toLowerCase()))
+      throw Error("A participant already recorded a session. Use a new participant for independent peer evidence.");
+    const reply=await request("/api/peer-study",{
+      action:"session",accessCode:document.querySelector("#access-code").value,session
+    });
+    peerSessions.push(reply.record);
+    peerStartedAt=null;
+    document.querySelector("#peer-timer-status").textContent="Observation finished.";
+    status.textContent=peerSessions.length+" genuine, participant-entered session(s) recorded.";
+    status.className="message success";
+  }catch(error){status.textContent=error.message;status.className="message error";}
+});
+document.querySelector("#export-peer-sessions").addEventListener("click",()=>{
+  if(!peerSessions.length)return;
+  exportJsonFile("testpilot-peer-usability-observations.json",{
+    study:"BITS BSDCH ZC229T human peer usability",
+    recorded:peerSessions.length,
+    participants:peerSessions,
+    independentIdentityAuthenticated:false,
+    note:"Only consent-based participant-entered records; not an automatic test."
+  });
+});

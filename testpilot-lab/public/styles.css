@@ -309,3 +309,17 @@ color:#243C68;font-weight:750}
 border:1px solid #C7D6EC;border-radius:8px;padding:9px}
 #experiment-review-ms{display:block;max-width:340px;margin-bottom:12px}
 @media(max-width:680px){.rating-grid{grid-template-columns:1fr}}
+
+
+/* Consent-led faculty usability study and real isolated failure evidence */
+.peer-task-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 18px}
+.peer-task{display:flex;flex-direction:column;gap:8px;border:1px solid #dce6f4;padding:11px;background:#fff;border-radius:10px;font-size:12px;font-weight:600;color:#2b4264}
+.peer-task select{width:100%;border:1px solid #c8d7eb;background:#fff;border-radius:8px;padding:8px;color:#24416e}
+.peer-review-row textarea{width:100%;min-width:180px;box-sizing:border-box;resize:vertical;border-radius:8px;border:1px solid #c8d7eb;padding:8px}
+.peer-review-row select{width:100%;min-width:116px;border:1px solid #c8d7eb;border-radius:8px;padding:8px;background:#fff}
+#peer-review-criteria{overflow-x:auto}
+#peer-consent{vertical-align:middle;margin-right:8px;accent-color:#365cdb}
+#peer-study-heading~* textarea{max-width:100%}
+.ci-failure-screenshot{display:block;max-width:100%;width:auto;max-height:420px;object-fit:contain;border:1px solid #cbd6ea;margin:12px 0;border-radius:9px}
+.ci-failure-detail{color:#9b2a3d;font-size:12px;line-height:1.5}
+@media(max-width:740px){.peer-task-list{grid-template-columns:1fr}}

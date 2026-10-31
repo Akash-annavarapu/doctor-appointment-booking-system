@@ -8,6 +8,7 @@ const { CHECKS, checksForStory, executeStoryChecks } = require("./verifiedChecks
 const { issueReceipt, verifyReceipt, validateApprovedCases, executeGeneratedCases } = require("./generatedCaseRunner");
 const { compareGeneratedWithManual } = require("./evaluation");
 const { validateReview, issueReviewReceipt, verifyReviewReceipt, approvedIds } = require("./reviewSession");
+const { validateIndependentReview, compareIndependentReviews, validatePeerSession, hashCases } = require("./peerStudy");
 const { buildTraceability } = require("./traceability");
 const { checksForStory: browserChecksForStory, WORKFLOW_URL } = require("./browserCoverage");
 
@@ -18,7 +19,7 @@ const hitTimes = new Map();
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMITS = Object.freeze({ generate: 4, execute: 20, "execute-generated": 12,
   evaluate: 15, "browser-plan": 15, review: 30, "execute-reviewed": 12,
-  "browser-plan-reviewed": 15 });
+  "browser-plan-reviewed": 15, "peer-study": 30 });
 
 class ApiError extends Error {
   constructor(status, message, retryAfterSeconds) {
@@ -399,7 +400,7 @@ async function handle(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
   const pathname = new URL(req.url, "http://localhost").pathname;
   if (req.method === "GET" && pathname === "/healthz") return json(res, 200, { ok: true, service: "testpilot-lab" });
   // Public readiness state contains no credentials, only availability of guarded features.
@@ -425,6 +426,41 @@ async function handle(req, res) {
     try { return json(res, 200, { success: true, ...buildTraceability() }); }
     catch { return json(res, 503, { success: false, message: "Traceability catalog unavailable." }); }
   }
+  if (req.method === "POST" && pathname === "/api/peer-study") {
+    try {
+      const payload = await readBody(req, 100000);
+      checkAccessCode(payload.accessCode);
+      takeRateLimit(req.socket.remoteAddress || "unknown", "peer-study");
+      const action = payload.action;
+      if (action === "session") {
+        return json(res, 200, { success: true, record: validatePeerSession(payload.session) });
+      }
+      const selected = stories.find(s => s.id === payload.storyId);
+      if (!selected) throw new ApiError(400, "Unknown story.");
+      const targetUrl = checkTarget(payload.targetUrl);
+      verifyReceipt(payload.receipt, payload.storyId, targetUrl, payload.cases);
+      const expected = hashCases(payload.cases);
+      if (action === "review") {
+        if (!payload.review || payload.review.caseSetHash !== expected)
+          throw new ApiError(400, "Independent review must refer to the original generated case set.");
+        return json(res, 200, { success: true,
+          record: validateIndependentReview(payload.review, selected.acceptanceCriteria) });
+      }
+      if (action === "compare") {
+        const a = payload.first, b = payload.second;
+        if (!a || !b || a.caseSetHash !== expected || b.caseSetHash !== expected)
+          throw new ApiError(400, "Both reviewers must evaluate the same original AI case set.");
+        const first = validateIndependentReview(a, selected.acceptanceCriteria);
+        const second = validateIndependentReview(b, selected.acceptanceCriteria);
+        return json(res, 200, { success: true, comparison: compareIndependentReviews(first, second) });
+      }
+      throw new ApiError(400, "Unknown peer study action.");
+    } catch (error) {
+      return json(res, error instanceof ApiError ? error.status : 400, {
+        success: false, message: error.message || "Unable to validate the peer study."
+      });
+    }
+  }
   if (req.method === "GET" && pathname === "/api/stories") {
     return json(res, 200, { count: stories.length, stories, targetUrl: FRONTEND + "/" });
   }
@@ -444,6 +480,9 @@ async function handle(req, res) {
           runId: String(r.runId || "").slice(0, 128),
           timestamp: r.timestamp, suite: String(r.suite || "").slice(0, 90),
           engine: "Static-CI",
+          evidenceRunUrl: typeof r.evidenceRunUrl === "string" &&
+            /^https:\/\/github\.com\/Akash-annavarapu\/doctor-appointment-booking-system\/actions\/runs\/\d+$/.test(r.evidenceRunUrl)
+              ? r.evidenceRunUrl : null,
           summary: {
             total: Number(r.summary.total) || 0,
             passed: Number(r.summary.passed) || 0,
@@ -456,7 +495,13 @@ async function handle(req, res) {
               ["PASS","FAIL"].includes(t.status))
             .slice(0, 500)
             .map(t => ({ id: String(t.id), title: String(t.title || "").slice(0, 180),
-              status: t.status, executionTime: Number(t.executionTime) || 0 })) : []
+              status: t.status, executionTime: Number(t.executionTime) || 0,
+              failureDetail: t.status === "FAIL" && typeof t.failureDetail === "string"
+                ? t.failureDetail.slice(0,200) : null,
+              screenshotDataUrl: t.status === "FAIL" && typeof t.screenshotDataUrl === "string" &&
+                t.screenshotDataUrl.length <= 160100 &&
+                /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(t.screenshotDataUrl)
+                ? t.screenshotDataUrl : null })) : []
         }));
       return json(res, 200, { success: true, runs,
         statement: "Measured GitHub Actions Jest, Vitest and Playwright assertions. Prewritten browser runs are not arbitrary AI-generated scripts." });

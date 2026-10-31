@@ -2,6 +2,7 @@
 // Translate measured Playwright JSON into the shape expected by TestPilot's
 // authenticated CI publisher. Never assume PASS when an assertion did not run.
 const fs = require("node:fs");
+const path = require("node:path");
 
 function gather(suites, out = []) {
   for (const suite of suites || []) {
@@ -16,6 +17,7 @@ function toJest(playwright) {
     throw new Error("Expected a Playwright JSON report containing suites.");
   }
   const assertions = [];
+  let screenshotClaimed = false;
   for (const spec of gather(playwright.suites)) {
     for (const execution of spec.tests || []) {
       const last = (execution.results || []).at(-1);
@@ -30,6 +32,29 @@ function toJest(playwright) {
       }
       const duration = (execution.results || []).reduce((n, result) =>
         n + (Number.isFinite(result.duration) && result.duration > 0 ? result.duration : 0), 0);
+      let screenshotBase64 = null;
+      if (status === "failed" && !screenshotClaimed) {
+        // A trusted local Playwright runner produced this attachment. Permit
+        // only output-directory PNG files, max 120 KB, never real patient data.
+        for (const attachment of last?.attachments || []) {
+          if (!attachment || attachment.contentType !== "image/png" ||
+              typeof attachment.path !== "string") continue;
+          const candidate = path.resolve(attachment.path);
+          const output = path.resolve(__dirname, "../test-results");
+          const artifacts = path.resolve(__dirname, "../artifacts");
+          if (!(candidate.startsWith(output + path.sep) ||
+                candidate.startsWith(artifacts + path.sep))) continue;
+          try {
+            const bytes = fs.readFileSync(candidate);
+            if (bytes.length >= 67 && bytes.length <= 120000 &&
+                bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) {
+              screenshotBase64 = bytes.toString("base64");
+              screenshotClaimed = true;
+              break;
+            }
+          } catch { /* An optional screenshot may have been cleaned up. */ }
+        }
+      }
       assertions.push({
         title: spec.title,
         fullName: spec.title,
@@ -37,7 +62,8 @@ function toJest(playwright) {
         duration: Math.floor(duration),
         failureMessages: status === "failed"
           ? [String(last?.error?.message || "Browser test did not complete successfully.").slice(0, 900)]
-          : []
+          : [],
+        screenshotBase64
       });
     }
   }
