@@ -159,6 +159,19 @@ function renderResult(data) {
       editor.value = value;
       card.append(fieldLabel, editor);
     }
+    const recipes = {
+      "US-001":[["register_valid","Valid registration"],["register_weak_password","Weak password rejected"],["register_boundary_password","Eight-character boundary"]],
+      "US-005":[["approved_doctor_only","Approved-only directory"],["empty_doctor_catalog","Empty approved directory"]],
+      "US-017":[["booking_valid","Successful booking"],["booking_conflict","Duplicate booking"],["booking_missing_fields","Required fields"],["booking_unauthenticated","Unauthenticated booking"],["booking_concurrent","Concurrent booking"],["booking_outside_hours","Out-of-hours booking"]]
+    };
+    const recipeLabel=node("label","review-field-label","Isolated executable recipe (optional; reviewed human mapping)");
+    const recipeSelect=node("select","reviewed-recipe");
+    recipeSelect.setAttribute("aria-label","Isolated scenario recipe for "+item.id);
+    recipeSelect.append(new Option("Unsupported / needs engineering", ""));
+    for (const [value,label] of recipes[data.storyId] || []) {
+      const option=node("option","",label); option.value=value; recipeSelect.append(option);
+    }
+    card.append(recipeLabel,recipeSelect);
     const noteLabel = node("label", "review-field-label", "Reviewer note / identified gap");
     const notes = node("textarea", "review-notes");
     notes.rows = 2;
@@ -358,6 +371,41 @@ document.querySelector("#export-review-button").addEventListener("click", () => 
     identityVerified: false,
     executionScope: "HUMAN_REVIEWED_PROBE_ONLY"
   });
+});
+function buildIsolatedPlan() {
+  const approved = approvedReviewIds();
+  const reviewer = document.querySelector("#isolated-reviewer").value.trim();
+  if (!reviewer || reviewer.length > 60) throw Error("Enter the actual reviewer identifier.");
+  const mappings = approved.map(id => {
+    const card=[...caseBox.querySelectorAll(".test-card")].find(el=>el.dataset.caseId===id);
+    const recipe=card.querySelector(".reviewed-recipe").value;
+    const item=currentReview.review.cases.find(x=>x.id===id);
+    return { id, title:item.title, decision:"APPROVED", recipe };
+  });
+  const unsupported=mappings.filter(x=>!x.recipe);
+  if(unsupported.length)throw Error("Unsupported approved cases: "+
+    unsupported.map(x=>x.id).join(", ")+". Implement a reviewed recipe or mark these NEEDS_IMPLEMENTATION, not PASS.");
+  return {format:"reviewed-isolated-plan-v1",reviewedBy:reviewer,
+    storyId:currentResult.storyId,cases:mappings,
+    note:"Execution maps reviewer-approved LLM scenario intent to fixed localhost API recipes; it does not run raw model-authored steps."};
+}
+document.querySelector("#export-isolated-plan").addEventListener("click",()=>{
+  const status=document.querySelector("#isolated-plan-status");
+  try{
+    const plan=buildIsolatedPlan();
+    exportJsonFile("testpilot-approved-isolated-plan.json",plan);
+    status.textContent="Exported "+plan.cases.length+" reviewed mapping(s). Paste its JSON in the manual GitHub workflow. Not executed yet.";
+    status.className="message success";
+  }catch(error){status.textContent=error.message;status.className="message error";}
+});
+document.querySelector("#copy-isolated-plan").addEventListener("click",async()=>{
+  const status=document.querySelector("#isolated-plan-status");
+  try{
+    const plan=buildIsolatedPlan();
+    await navigator.clipboard.writeText(JSON.stringify(plan));
+    status.textContent="Copied JSON for the manual GitHub workflow. The tests are NOT RUN until the workflow reports a real outcome.";
+    status.className="message success";
+  }catch(error){status.textContent=error.message;status.className="message error";}
 });
 function exportJsonFile(filename, payload) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
