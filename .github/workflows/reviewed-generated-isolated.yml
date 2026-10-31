@@ -1,0 +1,71 @@
+name: Reviewed AI scenarios - isolated execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      plan_json:
+        description: "Paste the exported reviewed-isolated-plan-v1 JSON (synthetic fixtures only)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reviewed:
+    name: Execute reviewer-mapped AI scenario recipes (localhost only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      CI: "true"
+      NODE_ENV: test
+      TESTPILOT_ISOLATED_API: "1"
+      TESTPILOT_ALLOWED_BASE: http://127.0.0.1:5199
+      JWT_SECRET: synthetic-isolated-review-workflow-only
+      MONGO_URI: mongodb://127.0.0.1:27017/testpilot_generated_test
+      MONGO_URI_TEST: mongodb://127.0.0.1:27017/testpilot_generated_test
+      TESTPILOT_REVIEWED_PLAN_FILE: ${{ github.workspace }}/e2e/artifacts/reviewed-plan.json
+      PLAN_JSON: ${{ inputs.plan_json }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate untrusted manifest as strict data, never shell code
+        run: |
+          mkdir -p e2e/artifacts
+          node -e 'const fs=require("fs");const {validatePlan}=require("./e2e/reviewedPlan.cjs");const p=validatePlan(JSON.parse(process.env.PLAN_JSON));fs.writeFileSync(process.env.TESTPILOT_REVIEWED_PLAN_FILE,JSON.stringify(p));console.log("Validated "+p.cases.length+" approved bounded recipes.");'
+      - name: Install isolated application dependencies
+        run: |
+          npm ci --prefix client
+          npm ci --prefix server
+          npm install --prefix e2e --no-audit --no-fund
+      - name: Build synthetic browser target
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:4173/api/v1
+        run: npm run build --prefix client
+      - name: Install Chromium
+        run: cd e2e && npx playwright install --with-deps chromium
+      - name: Execute reviewer-selected cases on disposable localhost MongoDB
+        run: cd e2e && npx playwright test tests/reviewed-dynamic.api.spec.cjs
+      - name: Publish HTML report and failure screenshots / traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewed-generated-scenario-evidence
+          path: |
+            e2e/artifacts/results.json
+            e2e/artifacts/html/
+            e2e/test-results/
+          if-no-files-found: warn
+          retention-days: 14
