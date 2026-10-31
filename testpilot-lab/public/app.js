@@ -792,3 +792,101 @@ function renderHumanCoverageAssessment(evaluation) {
   evaluationResult.append(section);
   calculate();
 }
+
+
+// Faculty prompt-engineering experiment evidence. Each entry is a real API
+// response recorded at generation time, never a fabricated pass or quality score.
+// Session storage keeps synthetic story/case text only; no keys, codes or receipts.
+const EXPERIMENT_STORAGE_KEY = "testpilot-faculty-prompt-log-v2";
+let experimentLog = [];
+let currentIterationId = null;
+try {
+  const persisted = JSON.parse(sessionStorage.getItem(EXPERIMENT_STORAGE_KEY) || "[]");
+  if (Array.isArray(persisted)) experimentLog = persisted.slice(-60);
+} catch { experimentLog = []; }
+
+function saveExperimentLog() {
+  try { sessionStorage.setItem(EXPERIMENT_STORAGE_KEY,
+    JSON.stringify(experimentLog.slice(-60))); } catch { /* Export remains available. */ }
+  const counter = document.querySelector("#prompt-log-count");
+  if (counter) {
+    const evaluated = experimentLog.filter(entry =>
+      Object.values(entry.humanRatings || {}).every(score => score >= 1 && score <= 5) &&
+      entry.reviewerObservation?.trim()).length;
+    counter.textContent = experimentLog.length + " actual model run(s) recorded; " +
+      evaluated + " with human quality ratings (target: 10 runs across 3 stories).";
+  }
+}
+function rememberRealGeneration(result, storyText, promptVariant, description, durationMs) {
+  const entry = {
+    iterationId: crypto.randomUUID(),
+    timestampUtc: result.generatedAt || new Date().toISOString(),
+    storyId: result.storyId, userStoryInput: storyText,
+    promptVersion: result.promptVersion || "unknown",
+    promptVariant: result.promptVariant || promptVariant,
+    promptChangeAndReason: description || "NOT DOCUMENTED BY OPERATOR",
+    llmProvider: result.generatedBy, model: result.model || "not returned",
+    elapsedGenerationMs: durationMs,
+    actualLlmOutput: result.cases,
+    humanRatings: { completeness: null, accuracy: null, healthcareRelevance: null },
+    reviewerObservation: "", humanReviewElapsedMs: null,
+    reviewTimestampUtc: null, kind: "ACTUAL_LLM_GENERATION_NOT_A_TEST_EXECUTION"
+  };
+  currentIterationId = entry.iterationId;
+  experimentLog.push(entry);
+  saveExperimentLog();
+  for (const select of document.querySelectorAll(".experiment-rating"))
+    select.value = "";
+  document.querySelector("#experiment-observation").value = "";
+  document.querySelector("#experiment-review-ms").value = "";
+  document.querySelector("#prompt-log-message").textContent =
+    "Actual provider response recorded. Add reviewer ratings and notes; do not score an unreviewed output.";
+}
+document.querySelector("#save-experiment-rating").addEventListener("click", () => {
+  const feedback = document.querySelector("#prompt-log-message");
+  const item = experimentLog.find(entry => entry.iterationId === currentIterationId);
+  if (!item) {
+    feedback.textContent = "Generate a real LLM result before recording quality ratings.";
+    feedback.className = "message error";
+    return;
+  }
+  const get = id => Number(document.querySelector("#" + id).value);
+  const ratings = {
+    completeness: get("rating-completeness"),
+    accuracy: get("rating-accuracy"),
+    healthcareRelevance: get("rating-relevance")
+  };
+  const observation = document.querySelector("#experiment-observation").value.trim();
+  const msValue = document.querySelector("#experiment-review-ms").value.trim();
+  const reviewMs = msValue ? Number(msValue) : null;
+  if (Object.values(ratings).some(x => !Number.isInteger(x) || x < 1 || x > 5) ||
+      !observation || observation.length > 1500 ||
+      (reviewMs !== null && (!Number.isFinite(reviewMs) || reviewMs < 0 || reviewMs > 86400000))) {
+    feedback.textContent = "Enter 1–5 for all three dimensions, a specific reviewer observation, and an optional measured review time in milliseconds.";
+    feedback.className = "message error";
+    return;
+  }
+  item.humanRatings = ratings;
+  item.reviewerObservation = observation;
+  item.humanReviewElapsedMs = reviewMs;
+  item.reviewTimestampUtc = new Date().toISOString();
+  feedback.textContent = "Reviewer-entered ratings saved for this actual generation. Export the log for faculty.";
+  feedback.className = "message success";
+  saveExperimentLog();
+});
+document.querySelector("#export-prompt-log").addEventListener("click", () => {
+  if (!experimentLog.length) {
+    document.querySelector("#prompt-log-message").textContent =
+      "No real model responses recorded. Generate at least one set first.";
+    return;
+  }
+  exportJsonFile("testpilot-real-prompt-iterations.json", {
+    specification: "BITS Pilani BSDCH ZC229T",
+    targetRuns: 10, targetDistinctStories: 3,
+    recordedRuns: experimentLog.length,
+    distinctStoryIds: [...new Set(experimentLog.map(entry => entry.storyId))],
+    notice: "Unrated scores are null. Real LLM responses only; model results are NOT_RUN until independently tested.",
+    iterations: experimentLog
+  });
+});
+saveExperimentLog();
