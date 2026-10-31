@@ -44,7 +44,7 @@ jobs:
       - name: Validate untrusted manifest as strict data, never shell code
         run: |
           mkdir -p e2e/artifacts
-          node -e 'const fs=require("fs");const {validatePlan}=require("./e2e/reviewedPlan.cjs");const p=validatePlan(JSON.parse(process.env.PLAN_JSON));fs.writeFileSync(process.env.TESTPILOT_REVIEWED_PLAN_FILE,JSON.stringify(p));console.log("Validated "+p.cases.length+" approved bounded recipes.");'
+          node -e 'const fs=require("fs");const {validatePlan}=require("./e2e/reviewedPlan.cjs");const raw=JSON.parse(process.env.PLAN_JSON);const p=validatePlan(raw);fs.writeFileSync(process.env.TESTPILOT_REVIEWED_PLAN_FILE,JSON.stringify(raw));console.log("Validated "+p.cases.length+" approved bounded recipes.");'
       - name: Install isolated application dependencies
         run: |
           npm ci --prefix client
