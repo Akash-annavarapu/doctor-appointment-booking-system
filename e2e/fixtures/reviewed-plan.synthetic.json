@@ -1,0 +1,44 @@
+{
+  "format": "reviewed-isolated-plan-v1",
+  "reviewedBy": "SYNTHETIC-CI-FIXTURE-NOT-A-HUMAN",
+  "storyId": "US-017",
+  "cases": [
+    {
+      "id": "AI-001",
+      "title": "Synthetic reviewed fixture: successful patient booking",
+      "decision": "APPROVED",
+      "recipe": "booking_valid"
+    },
+    {
+      "id": "AI-002",
+      "title": "Synthetic reviewed fixture: already-booked slot rejected",
+      "decision": "APPROVED",
+      "recipe": "booking_conflict"
+    },
+    {
+      "id": "AI-003",
+      "title": "Synthetic reviewed fixture: missing booking fields rejected",
+      "decision": "APPROVED",
+      "recipe": "booking_missing_fields"
+    },
+    {
+      "id": "AI-004",
+      "title": "Synthetic reviewed fixture: booking without credentials rejected",
+      "decision": "APPROVED",
+      "recipe": "booking_unauthenticated"
+    },
+    {
+      "id": "AI-005",
+      "title": "Synthetic reviewed fixture: concurrent booking collision",
+      "decision": "APPROVED",
+      "recipe": "booking_concurrent"
+    },
+    {
+      "id": "AI-006",
+      "title": "Synthetic reviewed fixture: out-of-hours request rejected",
+      "decision": "APPROVED",
+      "recipe": "booking_outside_hours"
+    }
+  ],
+  "note": "CI synthetic plan fixture to exercise safe executor. No real human approval or LLM response."
+}
