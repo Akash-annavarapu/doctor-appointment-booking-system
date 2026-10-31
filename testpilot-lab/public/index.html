@@ -48,7 +48,7 @@
       <div class="quick-stats" aria-label="Project overview">
         <div class="stat-tile"><strong id="story-count">25</strong><span>Documented user stories</span><small>Code-grounded requirements</small></div>
         <div class="stat-tile"><strong>15</strong><span>Mapped use cases</span><small>Healthcare system scope</small></div>
-        <div class="stat-tile"><strong>7</strong><span>Healthcare browser tests</span><small>Plus 4 Lab UI tests in CI</small></div>
+        <div class="stat-tile"><strong>26</strong><span>Verified Playwright tests</span><small>Including 10 new isolated API checks</small></div>
         <div class="stat-tile"><strong id="ai-case-count">0</strong><span>AI candidates this session</span><small>Not executed by generation</small></div>
       </div>
     </section>
@@ -80,6 +80,16 @@
           <label for="story-input">User story (editable)</label>
           <textarea id="story-input" rows="6" maxlength="1500" required placeholder="As a patient, I want to book an available appointment so that…"></textarea>
           <p class="help">Use “As a [role], I want [action], so that [outcome]”. AI also receives the source-reviewed acceptance criteria and API route.</p>
+          <label for="prompt-variant">Prompt experiment variant</label>
+          <select id="prompt-variant">
+            <option value="baseline">Baseline — balanced coverage</option>
+            <option value="boundary">Boundary and edge emphasis</option>
+            <option value="authorization">Role and authorization emphasis</option>
+            <option value="assertions">Precise observable assertions</option>
+          </select>
+          <label for="prompt-change">What changed in the prompt and why?</label>
+          <textarea id="prompt-change" rows="2" maxlength="500" placeholder="Example: Added boundary focus after earlier model output missed a minimum password length."></textarea>
+          <p class="help">Each genuine model response and selected prompt variant is recorded for the required 10-iteration faculty experiment. Ratings must be entered by a human.</p>
           <label for="access-code">Lab access code <span class="light">(only needed for live generation)</span></label>
           <input id="access-code" type="password" autocomplete="off" placeholder="Configured privately by the project owner">
           <button id="generate-button" class="primary" type="submit">✧ Generate AI test cases <span aria-hidden="true">→</span></button>
@@ -104,9 +114,18 @@
           <span class="warning">All generated cases are <strong>NOT RUN</strong>. Human review and isolated CI are required.</span>
           <button type="button" id="export-button" class="ghost">↓ Export test cases JSON</button>
         </div>
+        <section id="review-panel" class="lab-review-card" aria-label="Human test case review" hidden>
+          <h3>Human review — edit, approve, or reject</h3>
+          <p class="help">Edit each narrative field directly in its card and select Approve or Reject (or leave Not reviewed). Save to receive a signed review receipt before execution. Original Gemini output remains unchanged; edited narrative steps are never executed as arbitrary code.</p>
+          <label for="missing-scenarios">Missing scenarios identified by the reviewer</label>
+          <textarea id="missing-scenarios" rows="3" maxlength="2000" placeholder="Describe additional edge cases or gaps to add to the next prompt iteration."></textarea>
+          <button type="button" id="save-review-button" class="primary">Save signed human-review decisions</button>
+          <button type="button" id="export-review-button" class="ghost" hidden>↓ Export reviewed case set JSON</button>
+          <div id="review-message" class="message" role="status" aria-live="polite">No case has been reviewed yet.</div>
+        </section>
         <div id="generated-execution" class="ai-execution-box" hidden>
-          <h3>Execute approved cases with source-reviewed checks</h3>
-          <p class="help">Select cases above to approve. Only cases bound to a reviewed, read-only healthcare API assertion can execute against the live system. Other cases are explicitly SKIPPED; full booking/login automation requires isolated staging.</p>
+          <h3>Execute only approved cases with source-reviewed checks</h3>
+          <p class="help">Save the signed edits and approval decisions above first. Only fixed read-only assertions can run here. Other reviewed cases are SKIPPED; isolated Playwright suites run separately with synthetic fixtures. A passing probe does not establish that the complete edited narrative passed.</p>
           <button id="execute-generated-button" class="primary" type="button">▶ Execute selected AI cases safely</button>
           <div id="generated-run-message" class="message" role="status" aria-live="polite"></div>
           <div id="generated-run-results" class="run-results"></div>
@@ -128,6 +147,32 @@
         </div>
       </section>
     </div>
+    <section class="panel execution-panel" aria-labelledby="prompt-log-heading">
+      <div class="panel-heading"><span class="step-number">★</span><div><p class="kicker">FACULTY EVIDENCE</p><h2 id="prompt-log-heading">Prompt engineering experiment log</h2></div></div>
+      <div class="execution-body">
+        <p class="lead-small">Record at least 10 <strong>actual LLM runs across at least 3 different user stories</strong>. Each generated response is captured in this browser tab with the model, timestamp, chosen prompt variant, story and returned cases. Quality scores start blank and require independent reviewer input.</p>
+        <p id="prompt-log-count" class="probe-note">0 actual model runs recorded.</p>
+        <div class="rating-grid">
+          <label for="rating-completeness">Completeness (1–5)
+            <select id="rating-completeness" class="experiment-rating"><option value="">Not rated</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          </label>
+          <label for="rating-accuracy">Accuracy (1–5)
+            <select id="rating-accuracy" class="experiment-rating"><option value="">Not rated</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          </label>
+          <label for="rating-relevance">Healthcare relevance (1–5)
+            <select id="rating-relevance" class="experiment-rating"><option value="">Not rated</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+          </label>
+        </div>
+        <label for="experiment-observation">Human reviewer observation</label>
+        <textarea id="experiment-observation" rows="3" maxlength="1500" placeholder="Identify specific correct/missed steps and why the new prompt helped or did not help."></textarea>
+        <label for="experiment-review-ms">Measured review time (milliseconds, optional)</label>
+        <input id="experiment-review-ms" type="number" min="0" max="86400000" step="1" placeholder="Enter actual review duration only">
+        <button id="save-experiment-rating" type="button" class="primary">Save human quality ratings for latest output</button>
+        <button id="export-prompt-log" type="button" class="ghost">↓ Export real iteration log JSON</button>
+        <p id="prompt-log-message" class="message" role="status" aria-live="polite"></p>
+        <p class="help">Run history is saved only in this browser tab's session storage; download the export before closing the tab. The Lab never logs API keys, passwords, access codes or signed receipts. Do not submit invented model outputs or guessed ratings.</p>
+      </div>
+    </section>
     <section class="panel execution-panel" aria-labelledby="execution-heading">
       <div class="panel-heading"><span class="step-number">03</span><div><p class="kicker">ACTUAL EXECUTION</p><h2 id="execution-heading">Verified live checks</h2></div><span id="run-count" class="count">No run yet</span></div>
       <div class="execution-body">
@@ -163,7 +208,7 @@
     </section>
     <section class="footnote">
       <h2>Two applications, one testing objective.</h2>
-      <p><strong>System under test:</strong> the original GitHub doctor appointment booking application on Render. <strong>Testing application:</strong> this independent TestPilot Lab. It collects the deployed URL and user story, inspects public app evidence, and generates candidate cases. This lab supports limited measured read-only checks now; full execution of generated test cases against an isolated test environment remains the next milestone.</p>
+      <p><strong>System under test:</strong> the original GitHub doctor appointment booking application on Render. <strong>Testing application:</strong> this independent TestPilot Lab. It collects the deployed URL and user story, inspects public app evidence, and generates candidate cases. The Lab provides reviewed, signed safe-probe execution; the separately executed isolated Playwright suite covers reviewed AI scenario intents and records genuine outcomes. Full arbitrary generated-step execution is intentionally prohibited.</p>
       <a href="https://doctor-appointment-frontend-9dbs.onrender.com/" target="_blank" rel="noopener noreferrer">Open healthcare application ↗</a>
     </section>
   </main>

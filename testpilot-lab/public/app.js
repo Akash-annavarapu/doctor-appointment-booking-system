@@ -16,6 +16,7 @@ const inspectButton = document.querySelector("#inspect-button");
 const exportButton = document.querySelector("#export-button");
 let stories = [];
 let currentResult = null;
+let currentReview = null;
 
 function node(tag, className, text) {
   const element = document.createElement(tag);
@@ -93,6 +94,10 @@ function displayInspection(data) {
 
 function renderResult(data) {
   currentResult = data;
+  currentReview = null;
+  document.querySelector("#review-panel").hidden = false;
+  document.querySelector("#review-message").textContent = "No case has been reviewed yet.";
+  document.querySelector("#export-review-button").hidden = true;
   clearMessage();
   caseBox.replaceChildren();
   empty.hidden = true;
@@ -115,30 +120,57 @@ function renderResult(data) {
     top.append(node("span", "type-chip", item.type));
     top.append(node("span", "priority", item.priority));
     top.append(node("span", "not-run", "NOT RUN"));
-    const approval = node("label", "approval-label");
-    const checkbox = node("input", "ai-case-approval");
-    checkbox.type = "checkbox";
-    checkbox.value = item.id;
-    checkbox.checked = false;
-    approval.append(checkbox);
-    approval.append(node("span", "", "Approve " + item.id));
-    top.append(approval);
+    const reviewLabel = node("label", "approval-label");
+    reviewLabel.append(node("span", "", "Review decision"));
+    const decision = node("select", "ai-case-decision");
+    decision.setAttribute("aria-label", "Review decision for " + item.id);
+    for (const [value, label] of [
+      ["DRAFT", "Not reviewed"], ["APPROVED", "Approve"], ["REJECTED", "Reject"]
+    ]) {
+      const option = node("option", "", label);
+      option.value = value;
+      decision.append(option);
+    }
+    reviewLabel.append(decision);
+    top.append(reviewLabel);
+    card.dataset.caseId = item.id;
     card.append(top);
     card.append(node("p", "probe-label", item.probeId && item.probeId !== "NONE"
-      ? "Executable as verified read-only assertion: " + item.probeId
-      : "Requires staging/isolated CI; live execution will SKIP"));
-    card.append(node("h3", "", item.title));
-    const details = [
-      ["Preconditions", item.preconditions],
-      ["Synthetic test data", item.testData],
-      ["Steps", item.steps.map((step, i) => (i + 1) + ". " + step).join("\n")],
-      ["Expected result", item.expectedResult]
-    ];
-    for (const [name, value] of details) {
-      card.append(node("h4", "", name));
-      const p = node("p", name === "Steps" ? "preserve-lines" : "", value);
-      card.append(p);
+      ? "Bound to a fixed audited GET assertion: " + item.probeId +
+        ". Edited narrative steps are not executed as code."
+      : "No audited live probe. Requires a separate isolated, source-reviewed Playwright test."));
+    for (const [field, label, value] of [
+      ["title", "Description", item.title],
+      ["preconditions", "Preconditions", item.preconditions],
+      ["testData", "Synthetic test data", item.testData],
+      ["steps", "Actions — one step per line", item.steps.join("\n")],
+      ["expectedResult", "Expected result", item.expectedResult]
+    ]) {
+      const fieldId = "review-" + item.id + "-" + field;
+      const fieldLabel = node("label", "review-field-label", label);
+      fieldLabel.htmlFor = fieldId;
+      const editor = node("textarea", "review-field");
+      editor.id = fieldId;
+      editor.dataset.field = field;
+      editor.rows = field === "steps" ? 4 : field === "title" ? 2 : 3;
+      editor.maxLength = field === "steps" ? 2500 : 650;
+      editor.value = value;
+      card.append(fieldLabel, editor);
     }
+    const noteLabel = node("label", "review-field-label", "Reviewer note / identified gap");
+    const notes = node("textarea", "review-notes");
+    notes.rows = 2;
+    notes.maxLength = 1000;
+    notes.placeholder = "Explain any correction, missing scenario or rejection";
+    card.append(noteLabel, notes);
+    const change = () => {
+      currentReview = null;
+      document.querySelector("#review-message").textContent =
+        "Review edits are not approved yet. Save a new signed review before execution.";
+      document.querySelector("#export-review-button").hidden = true;
+    };
+    card.querySelectorAll("textarea, select").forEach(control =>
+      control.addEventListener("input", change));
     caseBox.append(card);
   }
   showMessage("AI candidates generated for " + data.storyId + ". " +
@@ -169,14 +201,21 @@ form.addEventListener("submit", async event => {
   event.preventDefault(); clearMessage();
   if (!stories.length) return showMessage("Choose a documented story first.", true);
   setBusy(true, "Inspecting and generating test cases.");
+  const startedAt = performance.now();
+  const inputSnapshot = storyInput.value;
+  const variantSnapshot = document.querySelector("#prompt-variant").value;
+  const changeSnapshot = document.querySelector("#prompt-change").value.trim();
   try {
     const result = await request("/api/generate", {
       targetUrl: urlInput.value,
       storyId: select.value,
       storyText: storyInput.value,
+      promptVariant: variantSnapshot,
       accessCode: document.querySelector("#access-code").value
     });
     renderResult(result);
+    rememberRealGeneration(result, inputSnapshot, variantSnapshot, changeSnapshot,
+      Math.round(performance.now() - startedAt));
   } catch (error) { showMessage(error.message, true); }
   finally { setBusy(false); }
 });
@@ -235,6 +274,94 @@ async function loadAiReadiness() {
 }
 loadAiReadiness();
 
+
+// The source LLM candidates never change. Reviewer edits and decisions are
+// submitted separately and only execute after a server-signed review receipt.
+function collectReviewDecisions() {
+  if (!currentResult?.cases) throw Error("Generate AI cases first.");
+  return currentResult.cases.map(item => {
+    const card = [...caseBox.querySelectorAll(".test-card")]
+      .find(el => el.dataset.caseId === item.id);
+    if (!card) throw Error("The review form is incomplete.");
+    const edits = {};
+    card.querySelectorAll(".review-field").forEach(editor => {
+      const field = editor.dataset.field;
+      const value = field === "steps"
+        ? editor.value.split("\n").map(step => step.trim()).filter(Boolean)
+        : editor.value.trim();
+      if (JSON.stringify(value) !== JSON.stringify(item[field])) edits[field] = value;
+    });
+    return {
+      id: item.id,
+      decision: card.querySelector(".ai-case-decision").value,
+      notes: card.querySelector(".review-notes").value,
+      edits
+    };
+  });
+}
+
+function approvedReviewIds() {
+  if (!currentReview) throw Error("Save your signed review first.");
+  const edited = collectReviewDecisions();
+  if (JSON.stringify(edited) !== JSON.stringify(currentReview.decisions))
+    throw Error("Review changed. Save it again before execution.");
+  const ids = edited.filter(item => item.decision === "APPROVED").map(item => item.id);
+  if (!ids.length) throw Error("Approve at least one candidate before execution.");
+  return ids;
+}
+function reviewedPayload(selectedIds) {
+  return {
+    ...candidateReviewPayload(),
+    decisions: currentReview.decisions,
+    reviewReceipt: currentReview.reviewReceipt,
+    selectedIds
+  };
+}
+document.querySelector("#save-review-button").addEventListener("click", async () => {
+  const status = document.querySelector("#review-message");
+  const button = document.querySelector("#save-review-button");
+  button.disabled = true;
+  try {
+    const decisions = collectReviewDecisions();
+    const reply = await request("/api/review", {
+      ...candidateReviewPayload(), decisions
+    });
+    currentReview = { decisions, reviewReceipt: reply.reviewReceipt, review: reply.review };
+    status.textContent = "Signed review saved: " + reply.review.summary.approved +
+      " approved, " + reply.review.summary.rejected + " rejected, " +
+      reply.review.summary.draft + " still unreviewed. No tests were executed.";
+    status.className = "message success";
+    document.querySelector("#export-review-button").hidden = false;
+  } catch (error) {
+    status.textContent = error.message;
+    status.className = "message error";
+  } finally { button.disabled = false; }
+});
+document.querySelector("#export-review-button").addEventListener("click", () => {
+  if (!currentReview) return;
+  exportJsonFile("testpilot-reviewed-" + currentResult.storyId.toLowerCase() + ".json", {
+    generatedBy: currentResult.generatedBy,
+    model: currentResult.model,
+    storyId: currentResult.storyId,
+    generatedAt: currentResult.generatedAt,
+    originalCases: currentResult.cases,
+    reviewDecisions: currentReview.decisions,
+    reviewedCases: currentReview.review.cases,
+    summary: currentReview.review.summary,
+    missingScenarios: document.querySelector("#missing-scenarios").value.trim(),
+    identityVerified: false,
+    executionScope: "HUMAN_REVIEWED_PROBE_ONLY"
+  });
+});
+function exportJsonFile(filename, payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+}
 
 // Actual execution of source-reviewed GET probes; never execute arbitrary LLM code on Render.
 const executeButton = document.querySelector("#execute-button");
@@ -385,9 +512,10 @@ executeGeneratedButton.addEventListener("click", async () => {
     generatedRunMessage.className = "message error";
     return;
   }
-  const selectedIds = [...document.querySelectorAll(".ai-case-approval:checked")].map(el => el.value);
-  if (!selectedIds.length) {
-    generatedRunMessage.textContent = "Review and explicitly approve at least one generated case.";
+  let selectedIds;
+  try { selectedIds = approvedReviewIds(); }
+  catch (error) {
+    generatedRunMessage.textContent = error.message;
     generatedRunMessage.className = "message error";
     return;
   }
@@ -396,14 +524,7 @@ executeGeneratedButton.addEventListener("click", async () => {
   generatedRunMessage.textContent = "Executing audited read-only assertions for approved cases…";
   generatedRunMessage.className = "message";
   try {
-    const response = await request("/api/execute-generated", {
-      storyId: currentResult.storyId,
-      targetUrl: currentResult.targetUrl,
-      cases: currentResult.cases,
-      selectedIds,
-      receipt: currentResult.receipt,
-      accessCode: document.querySelector("#access-code").value
-    });
+    const response = await request("/api/execute-reviewed", reviewedPayload(selectedIds));
     const run = response.run;
     generatedRunMessage.textContent = "Measured bound checks: " + run.summary.passed + " PASS, " +
       run.summary.failed + " FAIL, " + run.summary.skipped + " SKIPPED. " + run.interpretation;
@@ -504,15 +625,16 @@ exportEvaluationButton.addEventListener("click", () => {
 const browserPlanButton = document.querySelector("#browser-plan-button");
 const browserPlanResult = document.querySelector("#browser-plan-result");
 browserPlanButton.addEventListener("click", async () => {
-  const selectedIds = [...document.querySelectorAll(".ai-case-approval:checked")].map(el => el.value);
-  if (!selectedIds.length) {
-    browserPlanResult.replaceChildren(node("p", "message error", "Review and approve at least one AI candidate above."));
+  let selectedIds;
+  try { selectedIds = approvedReviewIds(); }
+  catch (error) {
+    browserPlanResult.replaceChildren(node("p", "message error", error.message));
     return;
   }
   browserPlanButton.disabled = true;
   browserPlanResult.replaceChildren(node("p", "probe-note", "Validating approved candidates and source-reviewed browser mappings…"));
   try {
-    const reply = await request("/api/browser-plan", { ...candidateReviewPayload(), selectedIds });
+    const reply = await request("/api/browser-plan-reviewed", reviewedPayload(selectedIds));
     browserPlanResult.replaceChildren();
     browserPlanResult.append(node("p", "lab-evaluation-summary",
       selectedIds.length + " AI candidate(s) selected for review. No browser tests have started."));
@@ -671,3 +793,101 @@ function renderHumanCoverageAssessment(evaluation) {
   evaluationResult.append(section);
   calculate();
 }
+
+
+// Faculty prompt-engineering experiment evidence. Each entry is a real API
+// response recorded at generation time, never a fabricated pass or quality score.
+// Session storage keeps synthetic story/case text only; no keys, codes or receipts.
+const EXPERIMENT_STORAGE_KEY = "testpilot-faculty-prompt-log-v2";
+let experimentLog = [];
+let currentIterationId = null;
+try {
+  const persisted = JSON.parse(sessionStorage.getItem(EXPERIMENT_STORAGE_KEY) || "[]");
+  if (Array.isArray(persisted)) experimentLog = persisted.slice(-60);
+} catch { experimentLog = []; }
+
+function saveExperimentLog() {
+  try { sessionStorage.setItem(EXPERIMENT_STORAGE_KEY,
+    JSON.stringify(experimentLog.slice(-60))); } catch { /* Export remains available. */ }
+  const counter = document.querySelector("#prompt-log-count");
+  if (counter) {
+    const evaluated = experimentLog.filter(entry =>
+      Object.values(entry.humanRatings || {}).every(score => score >= 1 && score <= 5) &&
+      entry.reviewerObservation?.trim()).length;
+    counter.textContent = experimentLog.length + " actual model run(s) recorded; " +
+      evaluated + " with human quality ratings (target: 10 runs across 3 stories).";
+  }
+}
+function rememberRealGeneration(result, storyText, promptVariant, description, durationMs) {
+  const entry = {
+    iterationId: crypto.randomUUID(),
+    timestampUtc: result.generatedAt || new Date().toISOString(),
+    storyId: result.storyId, userStoryInput: storyText,
+    promptVersion: result.promptVersion || "unknown",
+    promptVariant: result.promptVariant || promptVariant,
+    promptChangeAndReason: description || "NOT DOCUMENTED BY OPERATOR",
+    llmProvider: result.generatedBy, model: result.model || "not returned",
+    elapsedGenerationMs: durationMs,
+    actualLlmOutput: result.cases,
+    humanRatings: { completeness: null, accuracy: null, healthcareRelevance: null },
+    reviewerObservation: "", humanReviewElapsedMs: null,
+    reviewTimestampUtc: null, kind: "ACTUAL_LLM_GENERATION_NOT_A_TEST_EXECUTION"
+  };
+  currentIterationId = entry.iterationId;
+  experimentLog.push(entry);
+  saveExperimentLog();
+  for (const select of document.querySelectorAll(".experiment-rating"))
+    select.value = "";
+  document.querySelector("#experiment-observation").value = "";
+  document.querySelector("#experiment-review-ms").value = "";
+  document.querySelector("#prompt-log-message").textContent =
+    "Actual provider response recorded. Add reviewer ratings and notes; do not score an unreviewed output.";
+}
+document.querySelector("#save-experiment-rating").addEventListener("click", () => {
+  const feedback = document.querySelector("#prompt-log-message");
+  const item = experimentLog.find(entry => entry.iterationId === currentIterationId);
+  if (!item) {
+    feedback.textContent = "Generate a real LLM result before recording quality ratings.";
+    feedback.className = "message error";
+    return;
+  }
+  const get = id => Number(document.querySelector("#" + id).value);
+  const ratings = {
+    completeness: get("rating-completeness"),
+    accuracy: get("rating-accuracy"),
+    healthcareRelevance: get("rating-relevance")
+  };
+  const observation = document.querySelector("#experiment-observation").value.trim();
+  const msValue = document.querySelector("#experiment-review-ms").value.trim();
+  const reviewMs = msValue ? Number(msValue) : null;
+  if (Object.values(ratings).some(x => !Number.isInteger(x) || x < 1 || x > 5) ||
+      !observation || observation.length > 1500 ||
+      (reviewMs !== null && (!Number.isFinite(reviewMs) || reviewMs < 0 || reviewMs > 86400000))) {
+    feedback.textContent = "Enter 1–5 for all three dimensions, a specific reviewer observation, and an optional measured review time in milliseconds.";
+    feedback.className = "message error";
+    return;
+  }
+  item.humanRatings = ratings;
+  item.reviewerObservation = observation;
+  item.humanReviewElapsedMs = reviewMs;
+  item.reviewTimestampUtc = new Date().toISOString();
+  feedback.textContent = "Reviewer-entered ratings saved for this actual generation. Export the log for faculty.";
+  feedback.className = "message success";
+  saveExperimentLog();
+});
+document.querySelector("#export-prompt-log").addEventListener("click", () => {
+  if (!experimentLog.length) {
+    document.querySelector("#prompt-log-message").textContent =
+      "No real model responses recorded. Generate at least one set first.";
+    return;
+  }
+  exportJsonFile("testpilot-real-prompt-iterations.json", {
+    specification: "BITS Pilani BSDCH ZC229T",
+    targetRuns: 10, targetDistinctStories: 3,
+    recordedRuns: experimentLog.length,
+    distinctStoryIds: [...new Set(experimentLog.map(entry => entry.storyId))],
+    notice: "Unrated scores are null. Real LLM responses only; model results are NOT_RUN until independently tested.",
+    iterations: experimentLog
+  });
+});
+saveExperimentLog();

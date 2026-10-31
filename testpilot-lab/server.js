@@ -7,6 +7,7 @@ const stories = require("./user-stories.json");
 const { CHECKS, checksForStory, executeStoryChecks } = require("./verifiedChecks");
 const { issueReceipt, verifyReceipt, validateApprovedCases, executeGeneratedCases } = require("./generatedCaseRunner");
 const { compareGeneratedWithManual } = require("./evaluation");
+const { validateReview, issueReviewReceipt, verifyReviewReceipt, approvedIds } = require("./reviewSession");
 const { buildTraceability } = require("./traceability");
 const { checksForStory: browserChecksForStory, WORKFLOW_URL } = require("./browserCoverage");
 
@@ -16,7 +17,8 @@ const allowedPaths = new Set(["/", "/test-cases"]);
 const hitTimes = new Map();
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMITS = Object.freeze({ generate: 4, execute: 20, "execute-generated": 12,
-  evaluate: 15, "browser-plan": 15 });
+  evaluate: 15, "browser-plan": 15, review: 30, "execute-reviewed": 12,
+  "browser-plan-reviewed": 15 });
 
 class ApiError extends Error {
   constructor(status, message, retryAfterSeconds) {
@@ -232,7 +234,16 @@ function geminiResponseSchema(storyId) {
   return output;
 }
 
-async function generateCases({ story, inspection, fetchImpl = fetch }) {
+const PROMPT_VARIANTS = Object.freeze({
+  baseline: "Produce a balanced test case set following the verified requirements.",
+  boundary: "Prioritize date and field-length boundaries, missing values, and duplicate-state edge cases when the requirement permits.",
+  authorization: "Prioritize role-based denial, invalid authentication and privacy checks without inventing privileged endpoints.",
+  assertions: "Prefer concrete expected API codes, exact state transitions and verifiable oracles; avoid vague success predictions."
+});
+
+async function generateCases({ story, inspection, promptVariant = "baseline", fetchImpl = fetch }) {
+  if (!Object.hasOwn(PROMPT_VARIANTS, promptVariant))
+    throw new ApiError(400, "Unknown reviewed prompt variant.");
   const { provider, model, key } = activeAiConfig();
   if (!key) {
     throw new ApiError(503, provider === "gemini"
@@ -248,7 +259,8 @@ async function generateCases({ story, inspection, fetchImpl = fetch }) {
     "Never produce credentials, real patient data, private documents, shell commands, network exploit instructions or destructive test actions.",
     "Use synthetic input descriptions. Do not execute tests. All results remain NOT_RUN until reviewed.",
     "Assign probeId only when your case explicitly tests exactly that eligible read-only probe; otherwise use NONE. Never assign unrelated probes or suggest unsafe production writes.",
-    "Use distinct IDs AI-001 through AI-008, each title under 120 characters, and output only the requested JSON."
+    "Use distinct IDs AI-001 through AI-008, each title under 120 characters, and output only the requested JSON.",
+    PROMPT_VARIANTS[promptVariant]
   ].join(" ");
   const input = JSON.stringify({
     target: story.target, actor: story.actor, useCase: story.useCase,
@@ -462,14 +474,63 @@ async function handle(req, res) {
   }
   if (req.method === "POST" && (pathname === "/api/inspect" || pathname === "/api/generate" ||
       pathname === "/api/execute" || pathname === "/api/execute-generated" ||
-      pathname === "/api/evaluate" || pathname === "/api/browser-plan")) {
+      pathname === "/api/evaluate" || pathname === "/api/browser-plan" ||
+      pathname === "/api/review" || pathname === "/api/execute-reviewed" ||
+      pathname === "/api/browser-plan-reviewed")) {
     try {
       const payload = await readBody(req,
-        ["/api/execute-generated", "/api/evaluate", "/api/browser-plan"].includes(pathname) ? 40000 : 10000);
+        ["/api/execute-generated", "/api/evaluate", "/api/browser-plan",
+          "/api/review", "/api/execute-reviewed", "/api/browser-plan-reviewed"].includes(pathname) ? 100000 : 10000);
       const targetUrl = checkTarget(payload.targetUrl);
       if (pathname === "/api/inspect") {
         const inspection = await inspectSut(targetUrl);
         return json(res, 200, { success: true, inspection });
+      }
+      if (pathname === "/api/review" || pathname === "/api/execute-reviewed" ||
+          pathname === "/api/browser-plan-reviewed") {
+        if (!stories.some(item => item.id === payload.storyId))
+          throw new ApiError(400, "Unknown story.");
+        checkAccessCode(payload.accessCode);
+        const action = pathname.slice("/api/".length);
+        takeRateLimit(req.socket.remoteAddress || "unknown", action);
+        try {
+          verifyReceipt(payload.receipt, payload.storyId, targetUrl, payload.cases);
+          const reviewed = validateReview(payload.cases, payload.decisions);
+          if (pathname === "/api/review") {
+            const reviewReceipt = issueReviewReceipt(payload.storyId, targetUrl,
+              payload.receipt, reviewed.decisions);
+            return json(res, 200, {
+              success: true, reviewReceipt,
+              review: { storyId: payload.storyId, summary: reviewed.summary,
+                cases: reviewed.cases, identityVerified: false,
+                note: "Reviews are explicit operator choices, not independently authenticated signatures. Edited steps are not executable code." }
+            });
+          }
+          verifyReviewReceipt(payload.reviewReceipt, payload.storyId, targetUrl,
+            payload.receipt, reviewed.decisions);
+          const ids = approvedIds(payload.cases, reviewed.decisions, payload.selectedIds);
+          if (pathname === "/api/browser-plan-reviewed") {
+            return json(res, 200, {
+              success: true, storyId: payload.storyId, approvedCaseIds: ids,
+              browserChecks: browserChecksForStory(payload.storyId),
+              workflowUrl: WORKFLOW_URL, executed: false,
+              interpretation: "The mapped prewritten Playwright tests require an isolated environment. Mapping does not execute or fully validate the edited AI narrative."
+            });
+          }
+          const run = await executeGeneratedCases(payload.storyId, targetUrl,
+            payload.cases, ids, payload.receipt);
+          const byId = new Map(reviewed.cases.map(item => [item.id, item]));
+          run.results = run.results.map(result => ({
+            ...result, reviewedTitle: byId.get(result.id)?.title || result.title,
+            reviewed: true,
+            editScope: "HUMAN_REVIEWED_NARRATIVE_FIXED_PROBE_ONLY"
+          }));
+          run.review = reviewed.summary;
+          run.interpretation += " Approved edited narratives were not evaluated as executable scripts.";
+          return json(res, 200, { success: true, run });
+        } catch (error) {
+          throw new ApiError(400, error.message);
+        }
       }
       if (pathname === "/api/evaluate" || pathname === "/api/browser-plan") {
         if (!stories.some(item => item.id === payload.storyId)) throw new ApiError(400, "Unknown story.");
@@ -523,9 +584,13 @@ async function handle(req, res) {
         ? "Free Gemini generation is not configured. Add GEMINI_API_KEY to the Lab's Render environment."
         : "OpenAI generation is not configured. Add OPENAI_API_KEY to the Lab's Render environment.");
       const inspection = await inspectSut(targetUrl);
-      const cases = await generateCases({ story, inspection });
+      const promptVariant = payload.promptVariant || "baseline";
+      const cases = await generateCases({ story, inspection, promptVariant });
       return json(res, 200, { success: true, storyId: story.id, targetUrl, inspection,
         generatedBy: provider === "gemini" ? "Google Gemini" : "OpenAI",
+        model: activeAiConfig().model, promptVersion: "proposal-v2-2026-10-31",
+        promptVariant,
+        generatedAt: new Date().toISOString(),
         executionStatus: "NOT_RUN", cases,
         receipt: issueReceipt(story.id, targetUrl, cases) });
     } catch (error) {

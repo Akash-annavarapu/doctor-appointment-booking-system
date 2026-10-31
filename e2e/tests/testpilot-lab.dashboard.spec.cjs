@@ -13,7 +13,7 @@ test("TC-0508 Figma-inspired dashboard displays the testing workflow and evidenc
   await expect(page.getByRole("navigation", { name: "Testing workflow" })).toBeVisible();
   await expect(page.locator("#story-count")).toHaveText("25");
   await expect(page.locator("#ai-case-count")).toHaveText("0");
-  await expect(page.getByText("Healthcare browser tests", { exact: true })).toBeVisible();
+  await expect(page.getByText("Verified Playwright tests", { exact: true })).toBeVisible();
   await expect(page.getByText("Designed and executed are different.")).toBeVisible();
   await expect(page.getByRole("button", { name: /Generate AI test cases/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Measured CI reports" })).toBeVisible();
@@ -93,7 +93,17 @@ test("TC-0514 Lab compares mock model output to manual cases and prepares human-
       }
     })
   }));
-  await page.route("**/api/browser-plan", route => route.fulfill({
+  await page.route("**/api/review", route => route.fulfill({
+    status: 200, contentType: "application/json",
+    body: JSON.stringify({
+      success: true, reviewReceipt: "synthetic-signed-review-fixture",
+      review: {
+        summary: { approved: 1, rejected: 1, draft: 2 },
+        cases: [], identityVerified: false
+      }
+    })
+  }));
+  await page.route("**/api/browser-plan-reviewed", route => route.fulfill({
     status: 200, contentType: "application/json",
     body: JSON.stringify({
       success: true, storyId: "US-005", executed: false, approvedCaseIds: ["AI-001"],
@@ -127,11 +137,33 @@ test("TC-0514 Lab compares mock model output to manual cases and prepares human-
   expect(comparison.reviewerAssessment.ai.covered).toBe(1);
   expect(comparison.reviewerAssessment.manual.notCovered).toBe(1);
   expect(comparison.reviewerAssessment.notes).toContain("isolated fixture");
-  await page.locator(".ai-case-approval").first().check();
+  await expect(page.locator("#review-panel")).toBeVisible();
+  await page.locator(".test-card").first().locator('[data-field="title"]')
+    .fill("Reviewed source-grounded doctor catalog test");
+  await page.locator(".ai-case-decision").first().selectOption("APPROVED");
+  await page.locator(".ai-case-decision").nth(1).selectOption("REJECTED");
+  await page.locator("#save-review-button").click();
+  await expect(page.locator("#review-message")).toContainText("1 approved, 1 rejected");
+  await expect(page.locator("#export-review-button")).toBeVisible();
   await page.locator("#browser-plan-button").click();
   await expect(page.locator("#browser-plan-result")).toContainText("TC-0502");
   await expect(page.locator("#browser-plan-result")).toContainText("No browser tests have started");
   await expect(page.locator("#browser-plan-result")).toContainText("NOT a Gemini script execution");
+  await expect(page.locator("#prompt-log-count")).toContainText("1 actual model run(s)");
+  await page.locator("#rating-completeness").selectOption("4");
+  await page.locator("#rating-accuracy").selectOption("3");
+  await page.locator("#rating-relevance").selectOption("5");
+  await page.locator("#experiment-observation").fill("The model omitted the empty directory boundary.");
+  await page.locator("#save-experiment-rating").click();
+  await expect(page.locator("#prompt-log-count")).toContainText("1 with human quality ratings");
+  const logPending = page.waitForEvent("download");
+  await page.locator("#export-prompt-log").click();
+  const promptDownload = await logPending;
+  const prompt = JSON.parse(await fs.readFile(await promptDownload.path(), "utf8"));
+  expect(prompt.recordedRuns).toBeGreaterThanOrEqual(1);
+  expect(prompt.iterations.at(-1).humanRatings.accuracy).toBe(3);
+  expect(prompt.iterations.at(-1).actualLlmOutput).toHaveLength(4);
+  expect(prompt.iterations.at(-1)).not.toHaveProperty("receipt");
 });
 
 

@@ -289,3 +289,23 @@ button:hover:not(:disabled){transform:translateY(-1px)}
   .reviewer-score-table td:first-child{width:44%}
   .review-criterion-select{min-width:0;font-size:10px;padding:3px;width:100%}
 }
+
+
+/* BITS proposal review-editor and experimental evidence enhancements */
+#review-panel{margin-top:20px;padding:19px;border:1px solid #DDE7F7;border-radius:12px;background:#F8FAFF}
+#review-panel h3{margin:0 0 10px;font-size:17px;color:#223F7C}
+.review-field-label{display:block;font-size:12px;font-weight:750;color:#334B71;margin:12px 0 5px}
+.test-card .review-field,.test-card .review-notes,#missing-scenarios,
+#prompt-change,#experiment-observation{display:block;width:100%;min-width:0;box-sizing:border-box;min-height:46px;
+border-radius:8px;border:1px solid #CAD7EA;background:#fff;color:#1F324A;padding:10px 12px;font:inherit;
+font-size:12px;line-height:1.6;resize:vertical}
+.test-card .review-field:focus,.test-card .review-notes:focus{outline:2px solid #B5C7F6;border-color:#315ADB}
+.test-card .ai-case-decision{border-radius:8px;border:1px solid #C9D8F1;background:#fff;padding:6px 9px;
+color:#243C68;font-weight:750}
+#review-panel button,#prompt-log-heading~* button{margin:8px 10px 4px 0}
+.rating-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:15px 0}
+.rating-grid label{display:block;font-size:12px;font-weight:700;color:#2F4264}
+.rating-grid select{display:block;box-sizing:border-box;width:100%;margin-top:6px;background:#fff;
+border:1px solid #C7D6EC;border-radius:8px;padding:9px}
+#experiment-review-ms{display:block;max-width:340px;margin-bottom:12px}
+@media(max-width:680px){.rating-grid{grid-template-columns:1fr}}
