@@ -530,6 +530,13 @@ loadCiButton.addEventListener("click", async () => {
       item.append(node("p", "", "Total: " + run.summary.total + " · Passed: " + run.summary.passed +
         " · Failed: " + run.summary.failed + " · Skipped: " + run.summary.skipped));
       item.append(node("small", "", "Run " + run.runId + " · " + run.timestamp + " · " + run.engine));
+      if (typeof run.evidenceRunUrl === "string" &&
+          /^https:\/\/github\.com\/Akash-annavarapu\/doctor-appointment-booking-system\/actions\/runs\/\d+$/.test(run.evidenceRunUrl)) {
+        const evidence=node("a","lab-workflow-link","Open full Playwright report, failures and traces ↗");
+        evidence.href=run.evidenceRunUrl;
+        evidence.target="_blank";evidence.rel="noopener noreferrer";
+        item.append(evidence);
+      }
       if (Array.isArray(run.testResults) && run.testResults.length) {
         const details = node("details", "ci-case-details");
         details.append(node("summary", "", "View " + run.testResults.length + " measured assertions"));
@@ -539,6 +546,23 @@ loadCiButton.addEventListener("click", async () => {
           row.append(node("span", "ci-case-id", measured.id));
           row.append(node("span", "", measured.title));
           row.append(node("span", "status-chip " + measured.status.toLowerCase(), measured.status));
+          if (measured.status === "FAIL") {
+            const detail=node("p","ci-failure-detail",measured.failureDetail ||
+              "Assertion failed. Inspect the original GitHub report for details.");
+            row.append(detail);
+            if (typeof measured.screenshotDataUrl==="string" &&
+                /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(measured.screenshotDataUrl) &&
+                measured.screenshotDataUrl.length<160100) {
+              const preview=node("img","ci-failure-screenshot");
+              preview.src=measured.screenshotDataUrl;
+              preview.alt="Actual synthetic Playwright failure screenshot for "+measured.id;
+              preview.loading="lazy";
+              row.append(preview);
+            } else {
+              row.append(node("small","probe-note",
+                "No inline screenshot for this test (e.g., API-only or oversized capture)."));
+            }
+          }
           rows.append(row);
         }
         details.append(rows);
