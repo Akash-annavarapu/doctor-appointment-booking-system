@@ -13,7 +13,7 @@ The six-page editable academic report is supplied separately to the project team
 - Reference healthcare application exists separately from the TestPilot Lab; 25 documented stories across 15 use cases and a frozen 36-case manual test baseline.
 - Main-branch [run 41184096978](https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/runs/41184096978): 28 Playwright tests passed, one intentionally skipped guard, zero failed; backend and frontend jobs passed.
 - The same run separately invoked six synthetic reviewer-recipe scenarios, all passing. **These six fixture checks are not authenticated real human approvals and not ten model generations.**
-- An archived genuine Gemini US-017 generation includes four AI case intents, mapped to isolated static assertions. This one archive does **not** constitute ten experiments across three stories.
+- An earlier private evidence record, **TestPilot_AI_Comparison_2026-10-26.md**, documents **12 genuine Gemini candidate cases across US-001, US-005 and US-017**, versus **13 manual scenarios**. Its **preliminary assistant-scored** acceptance-criterion coverage was **4/6 AI** versus **6/6 manual**. This comparison is exploratory, not a completed independent human evaluation, not ten documented prompt iterations, and not automatically executed candidate scripts. Separately, the four archived US-017 case intents were mapped to fixed isolated Playwright assertions.
 - TestPilot contains review editing, explicit approve/reject decisions, independent-review comparison forms, consent-led timed peer-session forms, a safe recipe-only Playwright workflow, a dashboard with bounded actual failure screenshot support, and JSON export.
 
 ### Evidence still required from actual people and the actual model
