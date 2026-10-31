@@ -145,3 +145,11 @@ vite.config.ts.timestamp-*
 # Private uploaded medical documents
 server/uploads/medical-documents/*
 !server/uploads/medical-documents/.gitkeep
+
+# Private faculty evidence exports: may contain reviewer-entered observations and model outputs
+/testpilot-real-llm-study.json
+/faculty-real-llm-iterations.json
+/testpilot-real-prompt-iterations.json
+/testpilot-independent-human-reviews.json
+/testpilot-peer-usability-observations.json
+/evidence-private/
