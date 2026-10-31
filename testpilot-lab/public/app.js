@@ -96,6 +96,7 @@ function renderResult(data) {
   currentResult = data;
   currentReview = null;
   document.querySelector("#review-panel").hidden = false;
+  renderPeerReviewForm();
   document.querySelector("#review-message").textContent = "No case has been reviewed yet.";
   document.querySelector("#export-review-button").hidden = true;
   clearMessage();
@@ -896,3 +897,168 @@ document.querySelector("#export-prompt-log").addEventListener("click", () => {
   });
 });
 saveExperimentLog();
+
+
+// Independent human evidence is collected only after human interaction.
+// No test fixture or programmatic case generation can create human sign-off.
+let peerReviews = [];
+let peerSessions = [];
+let peerStartedAt = null;
+const PEER_TASKS = [
+  ["enter_story", "Choose and enter a real documented user story"],
+  ["generate", "Generate and inspect AI cases"],
+  ["edit_review", "Edit a case and identify a gap"],
+  ["approve_reject", "Approve and reject scenarios"],
+  ["inspect_report", "Distinguish PASS from NOT_RUN and inspect evidence"],
+  ["export", "Export reviewed results and quality log"]
+];
+for (const [task, label] of PEER_TASKS) {
+  const item = node("label", "peer-task");
+  item.append(node("span", "", label));
+  const select = node("select", "peer-task-result");
+  select.dataset.task = task;
+  for (const [value, name] of [
+    ["not_attempted", "Not attempted"], ["completed", "Completed"], ["blocked", "Blocked"]]) {
+    const option = node("option", "", name); option.value = value; select.append(option);
+  }
+  item.append(select);
+  document.querySelector("#peer-task-list").append(item);
+}
+
+function currentPeerCriteria() {
+  return stories.find(item => item.id === currentResult?.storyId)?.acceptanceCriteria || [];
+}
+function renderPeerReviewForm() {
+  peerReviews = [];
+  document.querySelector("#peer-review-comparison").replaceChildren();
+  const root = document.querySelector("#peer-review-criteria");
+  root.replaceChildren();
+  if (!currentResult?.receipt) return;
+  const table = node("table", "reviewer-score-table");
+  const header = node("tr");
+  for (const label of ["Acceptance criterion", "AI cases", "Manual baseline", "Reviewer case IDs and steps"]) {
+    header.append(node("th", "", label));
+  }
+  table.append(header);
+  for (const [i, criterion] of currentPeerCriteria().entries()) {
+    const tr = node("tr", "peer-review-row");
+    tr.dataset.index = String(i);
+    tr.append(node("td", "", criterion));
+    for (const tag of ["ai", "manual"]) {
+      const td = node("td");
+      const control = node("select", "peer-review-" + tag);
+      for (const [value, label] of [
+        ["not_reviewed", "Not reviewed"], ["covered", "Covered"],
+        ["not_covered", "Not covered"]]) {
+        const option = node("option", "", label); option.value = value; control.append(option);
+      }
+      td.append(control); tr.append(td);
+    }
+    const td = node("td");
+    const evidence = node("textarea", "peer-review-evidence");
+    evidence.maxLength = 1000; evidence.rows = 2; evidence.placeholder = "AI-001 step 2; TP-011 expected result";
+    td.append(evidence);tr.append(td); table.append(tr);
+  }
+  root.append(table);
+  document.querySelector("#peer-review-status").textContent = "Separate, independent reviews must be entered by two real people.";
+}
+document.querySelector("#save-peer-review").addEventListener("click", async () => {
+  const status = document.querySelector("#peer-review-status");
+  try {
+    if (!currentResult?.receipt) throw Error("Generate a real case set first.");
+    const hashBuffer = await crypto.subtle.digest("SHA-256",
+      new TextEncoder().encode(JSON.stringify(currentResult.cases)));
+    const caseSetHash = [...new Uint8Array(hashBuffer)].map(b=>b.toString(16).padStart(2,"0")).join("");
+    const assessments = [...document.querySelectorAll(".peer-review-row")].map((tr,i)=>({
+      criterion:currentPeerCriteria()[i],
+      ai:tr.querySelector(".peer-review-ai").value,
+      manual:tr.querySelector(".peer-review-manual").value,
+      evidence:tr.querySelector(".peer-review-evidence").value.trim()
+    }));
+    const reviewer = document.querySelector("#peer-reviewer").value.trim();
+    if (peerReviews.some(record=>record.reviewer.toLowerCase()===reviewer.toLowerCase()))
+      throw Error("This reviewer has already submitted. The second review must be independent.");
+    const reply = await request("/api/peer-study", {
+      ...candidateReviewPayload(),action:"review",
+      review:{reviewer,caseSetHash,assessments}
+    });
+    peerReviews.push(reply.record);
+    status.textContent = peerReviews.length + " distinct review(s) saved; goal 2.";
+    status.className = "message success";
+    document.querySelector("#peer-reviewer").value = "";
+    document.querySelectorAll(".peer-review-ai,.peer-review-manual")
+      .forEach(select => select.value="not_reviewed");
+    document.querySelectorAll(".peer-review-evidence").forEach(el=>el.value="");
+  } catch(error){status.textContent=error.message;status.className="message error";}
+});
+document.querySelector("#compare-peer-reviews").addEventListener("click", async () => {
+  const root=document.querySelector("#peer-review-comparison");root.replaceChildren();
+  try {
+    if(peerReviews.length<2)throw Error("Two real, distinct reviewer submissions are required.");
+    const reply=await request("/api/peer-study", {
+      ...candidateReviewPayload(),action:"compare",first:peerReviews[0],second:peerReviews[1]
+    });
+    root.append(node("p","lab-evaluation-summary",reply.comparison.agreed+
+      " of "+reply.comparison.total+" criteria agree. "+reply.comparison.disagreements.length+
+      " disagreement(s) require human discussion."));
+    for(const difference of reply.comparison.disagreements) {
+      const p=node("p","probe-note",difference.criterion+": "+
+        peerReviews[0].reviewer+" AI="+difference.first.ai+" / manual="+difference.first.manual+
+        "; "+peerReviews[1].reviewer+" AI="+difference.second.ai+" / manual="+difference.second.manual);
+      root.append(p);
+    }
+    root.append(node("p","lab-review-disclaimer",
+      "No independent identity authentication or final reviewer sign-off is implied. Export and resolve disagreements with both reviewers."));
+  }catch(error){root.append(node("p","message error",error.message));}
+});
+document.querySelector("#export-peer-reviews").addEventListener("click",()=>{
+  if (!peerReviews.length) return;
+  exportJsonFile("testpilot-independent-human-reviews.json",{
+    storyId:currentResult?.storyId, generatedAt:currentResult?.generatedAt,
+    reviewers:peerReviews,
+    independentIdentityAuthenticated:false,
+    status:peerReviews.length>=2?"TWO_SELF_DECLARED_REVIEWS_RECORDED":"INCOMPLETE"
+  });
+});
+
+document.querySelector("#start-peer-timer").addEventListener("click",()=>{
+  peerStartedAt=performance.now();
+  document.querySelector("#peer-timer-status").textContent =
+    "Observation started. Finish the tasks before saving the session.";
+});
+document.querySelector("#save-peer-session").addEventListener("click",async()=>{
+  const status=document.querySelector("#peer-session-status");
+  try{
+    if(peerStartedAt===null)throw Error("Start the observation timer before the actual session.");
+    const session = {
+      consent:document.querySelector("#peer-consent").checked,
+      participant:document.querySelector("#peer-participant").value,
+      browser:document.querySelector("#peer-browser").value,
+      durationSeconds:Math.max(1,Math.round((performance.now()-peerStartedAt)/1000)),
+      tasks:[...document.querySelectorAll(".peer-task-result")].map(el=>({
+        task:el.dataset.task,result:el.value
+      })),
+      feedback:document.querySelector("#peer-feedback").value
+    };
+    if(peerSessions.some(p=>p.participant.toLowerCase()===session.participant.trim().toLowerCase()))
+      throw Error("A participant already recorded a session. Use a new participant for independent peer evidence.");
+    const reply=await request("/api/peer-study",{
+      action:"session",accessCode:document.querySelector("#access-code").value,session
+    });
+    peerSessions.push(reply.record);
+    peerStartedAt=null;
+    document.querySelector("#peer-timer-status").textContent="Observation finished.";
+    status.textContent=peerSessions.length+" genuine, participant-entered session(s) recorded.";
+    status.className="message success";
+  }catch(error){status.textContent=error.message;status.className="message error";}
+});
+document.querySelector("#export-peer-sessions").addEventListener("click",()=>{
+  if(!peerSessions.length)return;
+  exportJsonFile("testpilot-peer-usability-observations.json",{
+    study:"BITS BSDCH ZC229T human peer usability",
+    recorded:peerSessions.length,
+    participants:peerSessions,
+    independentIdentityAuthenticated:false,
+    note:"Only consent-based participant-entered records; not an automatic test."
+  });
+});
