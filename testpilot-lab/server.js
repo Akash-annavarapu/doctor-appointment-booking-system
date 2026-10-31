@@ -400,7 +400,7 @@ async function handle(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
   const pathname = new URL(req.url, "http://localhost").pathname;
   if (req.method === "GET" && pathname === "/healthz") return json(res, 200, { ok: true, service: "testpilot-lab" });
   // Public readiness state contains no credentials, only availability of guarded features.
@@ -480,6 +480,9 @@ async function handle(req, res) {
           runId: String(r.runId || "").slice(0, 128),
           timestamp: r.timestamp, suite: String(r.suite || "").slice(0, 90),
           engine: "Static-CI",
+          evidenceRunUrl: typeof r.evidenceRunUrl === "string" &&
+            /^https:\/\/github\.com\/Akash-annavarapu\/doctor-appointment-booking-system\/actions\/runs\/\d+$/.test(r.evidenceRunUrl)
+              ? r.evidenceRunUrl : null,
           summary: {
             total: Number(r.summary.total) || 0,
             passed: Number(r.summary.passed) || 0,
@@ -492,7 +495,13 @@ async function handle(req, res) {
               ["PASS","FAIL"].includes(t.status))
             .slice(0, 500)
             .map(t => ({ id: String(t.id), title: String(t.title || "").slice(0, 180),
-              status: t.status, executionTime: Number(t.executionTime) || 0 })) : []
+              status: t.status, executionTime: Number(t.executionTime) || 0,
+              failureDetail: t.status === "FAIL" && typeof t.failureDetail === "string"
+                ? t.failureDetail.slice(0,200) : null,
+              screenshotDataUrl: t.status === "FAIL" && typeof t.screenshotDataUrl === "string" &&
+                t.screenshotDataUrl.length <= 160100 &&
+                /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(t.screenshotDataUrl)
+                ? t.screenshotDataUrl : null })) : []
         }));
       return json(res, 200, { success: true, runs,
         statement: "Measured GitHub Actions Jest, Vitest and Playwright assertions. Prewritten browser runs are not arbitrary AI-generated scripts." });
