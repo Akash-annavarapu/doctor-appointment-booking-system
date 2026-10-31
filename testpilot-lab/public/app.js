@@ -1102,6 +1102,8 @@ document.querySelector("#save-peer-session").addEventListener("click",async()=>{
   const status=document.querySelector("#peer-session-status");
   try{
     if(peerStartedAt===null)throw Error("Start the observation timer before the actual session.");
+    if(!document.querySelector("#peer-consent").checked)
+      throw Error("Participant consent is required before recording usability feedback.");
     const session = {
       consent:document.querySelector("#peer-consent").checked,
       participant:document.querySelector("#peer-participant").value,
