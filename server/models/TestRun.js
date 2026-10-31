@@ -6,7 +6,8 @@ const testResultSchema = new mongoose.Schema({
   category: { type: String, enum: ["Edge Case", "Happy Path", "Security"], required: true },
   status: { type: String, enum: ["PASS", "FAIL"], required: true },
   executionTime: { type: Number, required: true, min: 0 },
-  errorLog: { type: String, default: null }
+  errorLog: { type: String, default: null },
+  screenshotBase64: { type: String, default: null }
 }, { _id: false });
 
 const runSchema = new mongoose.Schema({
