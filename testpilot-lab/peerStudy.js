@@ -16,7 +16,9 @@ function validateIndependentReview(input, criteria) {
   if (!Array.isArray(input.assessments) || input.assessments.length !== criteria.length)
     throw Error("All criteria must have an explicit review state.");
   const assessments = input.assessments.map((item, i) => {
-    if (item.criterion !== criteria[i] || !STATES.includes(item.ai) ||
+    if (!item || item.criterion !== criteria[i])
+      throw Error("Independent review criterion differs from the verified user story.");
+    if (!STATES.includes(item.ai) ||
         !STATES.includes(item.manual) || typeof item.evidence !== "string" ||
         item.evidence.length > 1000 ||
         ((item.ai !== "not_reviewed" || item.manual !== "not_reviewed") && !item.evidence.trim()))
