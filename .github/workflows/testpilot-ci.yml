@@ -40,11 +40,26 @@ jobs:
         run: npm run build
 
   playwright:
-    name: Playwright Chromium browser tests (synthetic data)
+    name: Playwright Chromium + isolated generated-case API tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
     env:
       CI: "true"
+      NODE_ENV: test
+      TESTPILOT_ISOLATED_API: "1"
+      JWT_SECRET: testpilot-generated-api-local-only-synthetic-jwt
+      MONGO_URI: mongodb://127.0.0.1:27017/testpilot_generated_test
+      MONGO_URI_TEST: mongodb://127.0.0.1:27017/testpilot_generated_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -58,6 +73,8 @@ jobs:
         env:
           VITE_API_BASE_URL: http://127.0.0.1:4173/api/v1
         run: npm run build --prefix client
+      - name: Install server dependencies for isolated generated-case API tests
+        run: npm ci --prefix server
       - name: Install pinned Playwright runner
         run: npm install --prefix e2e --no-audit --no-fund
       - name: Install Chromium
