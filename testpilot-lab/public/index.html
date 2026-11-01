@@ -193,6 +193,16 @@
       <div class="execution-body">
         <p class="lead-small">Record at least 10 <strong>actual LLM runs across at least 3 different user stories</strong>. Each generated response is captured in this browser tab with the model, timestamp, chosen prompt variant, story and returned cases. Quality scores start blank and require independent reviewer input.</p>
         <p id="prompt-log-count" class="probe-note">0 actual model runs recorded.</p>
+        <div class="lab-review-card" aria-label="Ten run genuine Gemini study">
+          <h3>Complete the ten genuine Gemini experiments</h3>
+          <p class="help">The study follows a fixed 10-run plan across registration (US-001), doctor browsing (US-005) and booking (US-017). Each action calls your configured real LLM and records only actual responses. The remaining-run option uses API quota and stops on an error; it never fabricates output or reviewer ratings.</p>
+          <button type="button" class="primary" id="run-next-study">Generate next real study iteration</button>
+          <button type="button" class="ghost" id="run-remaining-study">Generate remaining real iterations (up to 10)</button>
+          <p id="study-progress" class="probe-note">The ten-run study has not started in this browser session.</p>
+        </div>
+        <label for="prompt-iteration-select">Choose a recorded model response to evaluate</label>
+        <select id="prompt-iteration-select" aria-label="Choose saved LLM experiment to rate"><option value="">No model responses recorded</option></select>
+        <p class="help">Reviewers can select and score each stored iteration individually. Evidence remains in this browser tab until exported; do not close it before downloading the study JSON.</p>
         <div class="rating-grid">
           <label for="rating-completeness">Completeness (1–5)
             <select id="rating-completeness" class="experiment-rating"><option value="">Not rated</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
@@ -208,7 +218,7 @@
         <textarea id="experiment-observation" rows="3" maxlength="1500" placeholder="Identify specific correct/missed steps and why the new prompt helped or did not help."></textarea>
         <label for="experiment-review-ms">Measured review time (milliseconds, optional)</label>
         <input id="experiment-review-ms" type="number" min="0" max="86400000" step="1" placeholder="Enter actual review duration only">
-        <button id="save-experiment-rating" type="button" class="primary">Save human quality ratings for latest output</button>
+        <button id="save-experiment-rating" type="button" class="primary">Save human quality ratings for selected output</button>
         <button id="export-prompt-log" type="button" class="ghost">↓ Export real iteration log JSON</button>
         <p id="prompt-log-message" class="message" role="status" aria-live="polite"></p>
         <p class="help">Run history is saved only in this browser tab's session storage; download the export before closing the tab. The Lab never logs API keys, passwords, access codes or signed receipts. Do not submit invented model outputs or guessed ratings.</p>

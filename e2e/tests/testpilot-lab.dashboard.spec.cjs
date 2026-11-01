@@ -238,3 +238,66 @@ test("TC-0517 Lab records only consent-based measured peer observations",async (
   expect(data.participants[0].identityVerified).toBe(false);
   expect(data.participants[0].consent).toBe(true);
 });
+
+
+test("TC-0518 full faculty experiment sequence records ten MOCKED responses and individually selects reviewer ratings", async ({ page }) => {
+  // Browser fixture only: never counted as actual Gemini generation or human research.
+  let providerCalls = 0;
+  await page.route("**/api/capabilities", route => route.fulfill({
+    status: 200, contentType: "application/json",
+    body: JSON.stringify({ success: true, aiProvider: "Google Gemini", aiGenerationReady: true })
+  }));
+  await page.route("**/api/generate", route => {
+    const body = route.request().postDataJSON();
+    providerCalls += 1;
+    const cases = Array.from({ length: 4 }, (_, i) => ({
+      id: "AI-" + String(i + 1).padStart(3, "0"),
+      title: "Synthetic browser fixture " + i,
+      type: i === 0 ? "positive" : "negative", priority: "P1",
+      preconditions: "Synthetic conditions", steps: ["Read synthetic state"],
+      testData: "No personal data", expectedResult: "Mock assertion",
+      probeId: "NONE", reviewed: false, executionStatus: "NOT_RUN"
+    }));
+    return route.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({
+        success: true, storyId: body.storyId, promptVariant: body.promptVariant,
+        generatedBy: "Google Gemini", model: "mock-only-browser-fixture",
+        generatedAt: "2026-11-01T12:00:00.000Z",
+        promptVersion: "proposal-v2-2026-10-31",
+        targetUrl: body.targetUrl, receipt: "synthetic-fixture-never-real",
+        cases, inspection: {
+          inspectionStatus: "PARTIAL", page: { title: "Synthetic fixture" },
+          publicDoctorCatalog: { available: false, approvedCount: null, specialties: [] },
+          evidenceScope: "No live provider or patient data"
+        }
+      })
+    });
+  });
+  await page.goto("/");
+  await page.locator("#access-code").fill("test-only-fixture-access-code");
+  await page.locator("#run-remaining-study").click();
+  await expect(page.locator("#study-progress")).toContainText("10/10 actual Gemini iterations");
+  expect(providerCalls).toBe(10);
+  await expect(page.locator("#prompt-iteration-select option")).toHaveCount(10);
+  const firstId = await page.locator("#prompt-iteration-select option").first().getAttribute("value");
+  const lastId = await page.locator("#prompt-iteration-select option").last().getAttribute("value");
+  await page.locator("#prompt-iteration-select").selectOption(firstId);
+  await page.locator("#rating-completeness").selectOption("4");
+  await page.locator("#rating-accuracy").selectOption("3");
+  await page.locator("#rating-relevance").selectOption("5");
+  await page.locator("#experiment-observation").fill("Synthetic rating fixture only.");
+  await page.locator("#save-experiment-rating").click();
+  await expect(page.locator("#study-progress")).toContainText("1/10 human-reviewed");
+  await page.locator("#prompt-iteration-select").selectOption(lastId);
+  await expect(page.locator("#rating-completeness")).toHaveValue("");
+  await page.locator("#prompt-iteration-select").selectOption(firstId);
+  await expect(page.locator("#rating-completeness")).toHaveValue("4");
+  const downloadPending = page.waitForEvent("download");
+  await page.locator("#export-prompt-log").click();
+  const download = await downloadPending;
+  const exported = JSON.parse(await fs.readFile(await download.path(), "utf8"));
+  expect(exported.plannedStudyRuns).toBe(10);
+  expect(new Set(exported.iterations.map(item => item.storyId)).size).toBe(3);
+  expect(exported.iterations.filter(item => item.reviewTimestampUtc).length).toBe(1);
+  expect(exported.iterations.every(item => item.model === "mock-only-browser-fixture")).toBe(true);
+});
