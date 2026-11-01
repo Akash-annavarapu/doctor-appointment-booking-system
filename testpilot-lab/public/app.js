@@ -876,6 +876,19 @@ function renderHumanCoverageAssessment(evaluation) {
 // Faculty prompt-engineering experiment evidence. Each entry is a real API
 // response recorded at generation time, never a fabricated pass or quality score.
 // Session storage keeps synthetic story/case text only; no keys, codes or receipts.
+const STUDY_PROTOCOL = "BITS-10-GEMINI-V1";
+const STUDY_PLAN = [
+  ["US-001", "baseline", "Baseline registration coverage"],
+  ["US-001", "boundary", "Evaluate seven/eight-character password boundaries"],
+  ["US-001", "assertions", "Improve observable registration assertions"],
+  ["US-005", "baseline", "Baseline approved-doctor directory"],
+  ["US-005", "boundary", "Evaluate empty doctor-directory edge cases"],
+  ["US-005", "assertions", "Improve precise doctor-list contract assertions"],
+  ["US-017", "baseline", "Baseline available appointment booking"],
+  ["US-017", "boundary", "Evaluate missing fields and unavailable booking slots"],
+  ["US-017", "authorization", "Evaluate denied unauthenticated booking"],
+  ["US-017", "assertions", "Improve persisted booking assertions and conflict status"]
+];
 const EXPERIMENT_STORAGE_KEY = "testpilot-faculty-prompt-log-v2";
 let experimentLog = [];
 let currentIterationId = null;
@@ -895,8 +908,31 @@ function saveExperimentLog() {
     counter.textContent = experimentLog.length + " actual model run(s) recorded; " +
       evaluated + " with human quality ratings (target: 10 runs across 3 stories).";
   }
+  const selector = document.querySelector("#prompt-iteration-select");
+  if (selector) {
+    selector.replaceChildren();
+    if (!experimentLog.length) {
+      const none = node("option", "", "No model responses recorded");
+      none.value = "";
+      selector.append(none);
+    } else {
+      experimentLog.forEach((entry, i) => {
+        const option = node("option", "", "Run " + (i + 1) + " · " + entry.storyId +
+          " · " + entry.promptVariant +
+          (entry.reviewTimestampUtc ? " · reviewed" : " · unrated"));
+        option.value = entry.iterationId;
+        selector.append(option);
+      });
+      if (!experimentLog.some(entry => entry.iterationId === currentIterationId)) {
+        currentIterationId = experimentLog[experimentLog.length - 1].iterationId;
+      }
+      selector.value = currentIterationId;
+    }
+  }
+  refreshStudyProgress();
 }
-function rememberRealGeneration(result, storyText, promptVariant, description, durationMs) {
+function rememberRealGeneration(result, storyText, promptVariant, description, durationMs,
+  studyProtocol = null) {
   const entry = {
     iterationId: crypto.randomUUID(),
     timestampUtc: result.generatedAt || new Date().toISOString(),
@@ -908,16 +944,14 @@ function rememberRealGeneration(result, storyText, promptVariant, description, d
     elapsedGenerationMs: durationMs,
     actualLlmOutput: result.cases,
     humanRatings: { completeness: null, accuracy: null, healthcareRelevance: null },
+    studyProtocol,
     reviewerObservation: "", humanReviewElapsedMs: null,
     reviewTimestampUtc: null, kind: "ACTUAL_LLM_GENERATION_NOT_A_TEST_EXECUTION"
   };
   currentIterationId = entry.iterationId;
   experimentLog.push(entry);
   saveExperimentLog();
-  for (const select of document.querySelectorAll(".experiment-rating"))
-    select.value = "";
-  document.querySelector("#experiment-observation").value = "";
-  document.querySelector("#experiment-review-ms").value = "";
+  displaySelectedIteration();
   document.querySelector("#prompt-log-message").textContent =
     "Actual provider response recorded. Add reviewer ratings and notes; do not score an unreviewed output.";
 }
@@ -925,7 +959,7 @@ document.querySelector("#save-experiment-rating").addEventListener("click", () =
   const feedback = document.querySelector("#prompt-log-message");
   const item = experimentLog.find(entry => entry.iterationId === currentIterationId);
   if (!item) {
-    feedback.textContent = "Generate a real LLM result before recording quality ratings.";
+    feedback.textContent = "Select a real LLM response before recording quality ratings.";
     feedback.className = "message error";
     return;
   }
@@ -963,12 +997,126 @@ document.querySelector("#export-prompt-log").addEventListener("click", () => {
     specification: "BITS Pilani BSDCH ZC229T",
     targetRuns: 10, targetDistinctStories: 3,
     recordedRuns: experimentLog.length,
+    plannedStudyRuns: experimentLog.filter(entry => entry.studyProtocol === STUDY_PROTOCOL).length,
     distinctStoryIds: [...new Set(experimentLog.map(entry => entry.storyId))],
     notice: "Unrated scores are null. Real LLM responses only; model results are NOT_RUN until independently tested.",
     iterations: experimentLog
   });
 });
+// The ten-run faculty study uses the actual configured Gemini API. A click can
+// consume the project's quota; no result is invented if the provider fails.
+function refreshStudyProgress() {
+  const progress = document.querySelector("#study-progress");
+  if (!progress) return;
+  const completed = experimentLog.filter(entry =>
+    entry.studyProtocol === STUDY_PROTOCOL);
+  const scored = completed.filter(entry => ["completeness", "accuracy", "healthcareRelevance"]
+    .every(key => Number.isInteger(entry.humanRatings?.[key]) &&
+      entry.humanRatings[key] >= 1 && entry.humanRatings[key] <= 5) &&
+    entry.reviewerObservation?.trim()).length;
+  const distinct = new Set(completed.map(entry => entry.storyId)).size;
+  progress.textContent = completed.length + "/10 actual Gemini iterations; " +
+    scored + "/" + completed.length + " human-reviewed; " + distinct +
+    "/3 stories represented. " +
+    (completed.length === 10 && scored === 10
+      ? "All model outputs and ratings recorded; independent peer validation is still required."
+      : "No unobserved response or human score is treated as completed.");
+}
+function displaySelectedIteration() {
+  const chosen = experimentLog.find(entry => entry.iterationId === currentIterationId);
+  const pairs = [["rating-completeness", "completeness"],
+    ["rating-accuracy", "accuracy"], ["rating-relevance", "healthcareRelevance"]];
+  for (const [id, key] of pairs) {
+    document.querySelector("#" + id).value =
+      chosen && Number.isInteger(chosen.humanRatings?.[key]) ?
+        String(chosen.humanRatings[key]) : "";
+  }
+  document.querySelector("#experiment-observation").value = chosen?.reviewerObservation || "";
+  document.querySelector("#experiment-review-ms").value =
+    chosen?.humanReviewElapsedMs ?? "";
+}
+document.querySelector("#prompt-iteration-select").addEventListener("change", event => {
+  currentIterationId = event.target.value || null;
+  displaySelectedIteration();
+  document.querySelector("#prompt-log-message").textContent =
+    "Review the selected real LLM response. Enter your own ratings and save.";
+});
+let studyRunning = false;
+async function generateStudyIterations(runAll) {
+  const status = document.querySelector("#prompt-log-message");
+  if (studyRunning) return;
+  if (!stories.length) {
+    status.textContent = "The documented user-story catalog is unavailable.";
+    return;
+  }
+  if (!document.querySelector("#access-code").value.trim()) {
+    status.textContent = "Enter your Lab access code before running real Gemini requests.";
+    status.className = "message error";
+    return;
+  }
+  studyRunning = true;
+  const nextButton = document.querySelector("#run-next-study");
+  const allButton = document.querySelector("#run-remaining-study");
+  nextButton.disabled = allButton.disabled = true;
+  try {
+    const readyResponse = await fetch("/api/capabilities");
+    if (!readyResponse.ok) throw Error("Cannot verify Gemini configuration.");
+    const ready = await readyResponse.json();
+    if (ready.aiProvider !== "Google Gemini" || !ready.aiGenerationReady) {
+      throw Error("A configured Gemini provider and Lab access code are required for the faculty study.");
+    }
+    while (true) {
+      const done = experimentLog.filter(entry =>
+        entry.studyProtocol === STUDY_PROTOCOL).length;
+      if (done >= STUDY_PLAN.length) {
+        status.textContent = "Ten actual Gemini responses recorded. Rate each one before exporting.";
+        break;
+      }
+      const [storyId, promptVariant, reason] = STUDY_PLAN[done];
+      const story = stories.find(item => item.id === storyId);
+      if (!story) throw Error("Required user story " + storyId + " is unavailable.");
+      select.value = storyId;
+      displaySelectedStory();
+      document.querySelector("#prompt-variant").value = promptVariant;
+      document.querySelector("#prompt-change").value = reason;
+      status.textContent = "Calling real Gemini for experiment " + (done + 1) + "/10: " +
+        storyId + " · " + promptVariant + ".";
+      status.className = "message";
+      const started = performance.now();
+      const response = await request("/api/generate", {
+        targetUrl: urlInput.value,
+        storyId, storyText: story.story, promptVariant,
+        accessCode: document.querySelector("#access-code").value
+      });
+      if (response.generatedBy !== "Google Gemini" ||
+          response.storyId !== storyId || response.promptVariant !== promptVariant ||
+          !Array.isArray(response.cases) || response.cases.length < 4) {
+        throw Error("Unexpected generation response; this iteration was not recorded.");
+      }
+      rememberRealGeneration(response, story.story, promptVariant, reason,
+        Math.round(performance.now() - started), STUDY_PROTOCOL);
+      renderResult(response);
+      status.textContent = "Recorded verified provider response " + (done + 1) +
+        "/10. Human scoring is still required.";
+      status.className = "message success";
+      if (!runAll) break;
+    }
+  } catch (error) {
+    status.textContent = "Stopped without fabricating results: " + error.message +
+      " Previously recorded real responses are retained; export them before closing this tab.";
+    status.className = "message error";
+  } finally {
+    nextButton.disabled = allButton.disabled = false;
+    studyRunning = false;
+    refreshStudyProgress();
+  }
+}
+document.querySelector("#run-next-study").addEventListener("click", () =>
+  generateStudyIterations(false));
+document.querySelector("#run-remaining-study").addEventListener("click", () =>
+  generateStudyIterations(true));
 saveExperimentLog();
+displaySelectedIteration();
 
 
 // Independent human evidence is collected only after human interaction.
