@@ -1,0 +1,152 @@
+{
+  "schema": "testpilot-observed-case-comparison-v1",
+  "asOf": "2026-11-03",
+  "assessment": {
+    "status": "PRELIMINARY_ASSISTANT_TECHNICAL_REVIEW_UNSIGNED",
+    "modelSource": "Original US-017 Gemini export (SHA-256 in evidence archive) dated 2026-10-26, plus archived preliminary 26 October three-story AI/manual comparison; original US-001/US-005 raw outputs not located in this repository.",
+    "independentlyHumanReviewed": false,
+    "humanRatingsRecorded": false,
+    "caveat": "These are preliminary explicit-assertion design judgments, not measured AI-test success rates, validated participant scores, or statistical comparisons.",
+    "completeThreeStoryRawModelExportsInRepository": false,
+    "redactedUS017OriginalArchived": true
+  },
+  "stories": [
+    {
+      "storyId": "US-001",
+      "aiCaseCount": 4,
+      "manualCaseIds": [
+        "TP-001",
+        "TP-002",
+        "TP-003",
+        "TP-004",
+        "TP-005",
+        "TP-006"
+      ],
+      "criteria": [
+        {
+          "acceptanceCriterion": "Valid unique details create account and JWT",
+          "ai": "covered",
+          "manual": "covered",
+          "basis": "The archived Gemini sample includes a successful registration/JWT case; manual TP-001 addresses valid registration."
+        },
+        {
+          "acceptanceCriterion": "missing fields or short password are rejected.",
+          "ai": "covered",
+          "manual": "covered",
+          "basis": "Archived Gemini designs include missing-field and short-password negatives; manual TP-002 and TP-003 directly address these."
+        }
+      ],
+      "limitations": [
+        "AI input phone example can fail the backend's Indian mobile validation, confounding a valid-registration case.",
+        "The six manual cases additionally specify exactly eight characters, a duplicate-email normalization check, and invalid phone format. Gemini generated four candidates; coverage beyond these two narrow criteria is not established."
+      ]
+    },
+    {
+      "storyId": "US-005",
+      "aiCaseCount": 4,
+      "manualCaseIds": [
+        "TP-011",
+        "TP-012",
+        "TP-013"
+      ],
+      "criteria": [
+        {
+          "acceptanceCriterion": "Only approved doctors appear",
+          "ai": "not_covered",
+          "manual": "covered",
+          "basis": "The Gemini approved-doctor candidate described filtering but did not explicitly assert pending/nonapproved doctors are absent; manual TP-011 targets this."
+        },
+        {
+          "acceptanceCriterion": "an empty list is handled clearly.",
+          "ai": "not_covered",
+          "manual": "covered",
+          "basis": "The Gemini empty-catalog candidate did not assert an empty array or clear UI; manual TP-012 explicitly tests an empty catalog."
+        }
+      ],
+      "limitations": [
+        "Gemini proposed a method-handling case; manual TP-013 covers an invalid doctor ObjectId.",
+        "A successful read-only GET 200 probe does not establish approved-only filtering or empty state."
+      ]
+    },
+    {
+      "storyId": "US-017",
+      "aiCaseCount": 4,
+      "manualCaseIds": [
+        "TP-023",
+        "TP-024",
+        "TP-025",
+        "TP-026"
+      ],
+      "criteria": [
+        {
+          "acceptanceCriterion": "Valid booking creates Pending appointment",
+          "ai": "covered",
+          "manual": "covered",
+          "basis": "Gemini AI-001 and manual TP-023 express valid Pending booking; isolated Playwright verifies POST 201 and exactly one record."
+        },
+        {
+          "acceptanceCriterion": "unavailable times are rejected.",
+          "ai": "covered",
+          "manual": "covered",
+          "basis": "Gemini AI-002 addresses an occupied slot and manual TP-026 addresses booked slots. Both do not alone prove all unavailable-time classes."
+        }
+      ],
+      "limitations": [
+        "Gemini missed out-of-working-hours booking (TP-024) and concurrent-booking collision (TP-025).",
+        "The source-derived US-018 concurrency assertion is NOT a Gemini-produced scenario.",
+        "Gemini's placeholder doctorId and dated time examples were adapted to valid isolated fixtures; adaptation requires human sign-off."
+      ]
+    }
+  ],
+  "measuredExecution": {
+    "runId": 41327612679,
+    "workflowUrl": "https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/runs/41327612679",
+    "runAtUtc": "2026-11-01T16:41:28Z",
+    "source": "GitHub Actions Playwright Chromium + isolated generated-case API tests job logs",
+    "fixedTestFile": "e2e/tests/generated-booking.api.spec.cjs",
+    "isolatedLocalDatabase": "mongodb://127.0.0.1:27017/testpilot_generated_test",
+    "playwrightMainSuite": {
+      "passed": 29,
+      "skipped": 1,
+      "failed": 0
+    },
+    "separateSyntheticRecipeFixture": {
+      "passed": 6,
+      "failed": 0,
+      "modelSource": false,
+      "humanApproval": false
+    },
+    "generatedCaseMappings": [
+      {
+        "caseId": "AI-001",
+        "type": "positive",
+        "assertion": "Valid booking creates exactly one Pending appointment",
+        "status": "PASS"
+      },
+      {
+        "caseId": "AI-002",
+        "type": "negative",
+        "assertion": "Reserved slot is rejected HTTP 409 without duplicate",
+        "status": "PASS"
+      },
+      {
+        "caseId": "AI-003",
+        "type": "negative",
+        "assertion": "Missing mandatory booking fields rejected HTTP 400 with zero inserts",
+        "status": "PASS"
+      },
+      {
+        "caseId": "AI-004",
+        "type": "security",
+        "assertion": "Unauthenticated booking denied HTTP 401 with zero inserts",
+        "status": "PASS"
+      }
+    ],
+    "notModelGenerated": [
+      "US-018 concurrency edge",
+      "US-001 registration source-derived checks",
+      "US-005 browsing source-derived checks"
+    ],
+    "disclaimer": "This is verified execution of four source-reviewed Gemini scenario intents using fixed test code and synthetic localhost data. It is NOT evidence that the real Gemini input was human-approved in the Lab, nor that arbitrary generated scripts were executed."
+  }
+}

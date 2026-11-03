@@ -1,0 +1,78 @@
+{
+  "format": "testpilot-original-gemini-output-redacted-v1",
+  "sourceFile": "testpilot-us-017-not-run.json",
+  "sourceFileSha256": "b7db658e907884c8efdf94f867d25ab012bd678564c86a9ff45da8e833b44ce2",
+  "sourceInspectionTimestampUtc": "2026-10-26T18:35:17.308Z",
+  "storyId": "US-017",
+  "generatedBy": "Google Gemini",
+  "originalExecutionStatus": "NOT_RUN",
+  "receiptOmitted": true,
+  "originalSignedReceiptMustNotBePublished": true,
+  "cases": [
+    {
+      "id": "AI-001",
+      "title": "Successfully book an open appointment slot as a patient",
+      "type": "positive",
+      "priority": "P0",
+      "preconditions": "Patient is authenticated and an open doctor time slot exists.",
+      "steps": [
+        "Navigate to the appointment booking view",
+        "Select an available doctor and open time slot",
+        "Submit the reservation request to /api/v1/appointment/book"
+      ],
+      "testData": "doctorId: 'DOC-123', slotTime: '2026-11-01T10:00:00Z'",
+      "expectedResult": "The booking request is processed and a pending appointment is created successfully.",
+      "probeId": "NONE",
+      "executionStatus": "NOT_RUN",
+      "reviewed": false
+    },
+    {
+      "id": "AI-002",
+      "title": "Reject booking request for an unavailable appointment time slot",
+      "type": "negative",
+      "priority": "P1",
+      "preconditions": "Patient is authenticated and selects a slot that is already booked.",
+      "steps": [
+        "Select an unavailable or already reserved time slot",
+        "Submit the reservation request to /api/v1/appointment/book"
+      ],
+      "testData": "doctorId: 'DOC-123', slotTime: '2026-11-01T09:00:00Z' (already booked)",
+      "expectedResult": "The booking attempt is rejected with an appropriate error response indicating unavailability.",
+      "probeId": "NONE",
+      "executionStatus": "NOT_RUN",
+      "reviewed": false
+    },
+    {
+      "id": "AI-003",
+      "title": "Reject booking request with missing mandatory fields",
+      "type": "negative",
+      "priority": "P2",
+      "preconditions": "Patient is authenticated.",
+      "steps": [
+        "Omit the doctorId or slotTime parameter",
+        "Submit the incomplete payload to /api/v1/appointment/book"
+      ],
+      "testData": "doctorId: '', slotTime: ''",
+      "expectedResult": "The server rejects the request with validation error codes.",
+      "probeId": "NONE",
+      "executionStatus": "NOT_RUN",
+      "reviewed": false
+    },
+    {
+      "id": "AI-004",
+      "title": "Deny appointment booking for unauthenticated users",
+      "type": "security",
+      "priority": "P0",
+      "preconditions": "User is unauthenticated.",
+      "steps": [
+        "Attempt to send a POST request to /api/v1/appointment/book without a valid session or token"
+      ],
+      "testData": "doctorId: 'DOC-123', slotTime: '2026-11-01T10:00:00Z', authHeader: 'none'",
+      "expectedResult": "The server denies access and returns an unauthorized status code.",
+      "probeId": "NONE",
+      "executionStatus": "NOT_RUN",
+      "reviewed": false
+    }
+  ],
+  "provenanceNote": "Transcribed from the original team-held 2026-10-26 TestPilot Lab export; its expired 30-minute signed receipt is deliberately excluded. Model case steps and expected results are preserved as generated. This does not certify any human approval."
+}
