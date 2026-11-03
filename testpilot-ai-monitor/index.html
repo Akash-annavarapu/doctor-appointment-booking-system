@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TestPilot | AI Monitor</title>
+<style>
+*{box-sizing:border-box}html{background:#060c18}body{margin:0;color:#e7f0ff;background:radial-gradient(circle at 75% 2%,#132e54 0,#081427 31%,#050b16 73%);font:15px system-ui,Arial,sans-serif;min-height:100vh;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;background:repeating-linear-gradient(0deg,#ffffff04 0px,#ffffff04 1px,transparent 2px,transparent 5px);pointer-events:none;z-index:4}
+nav{display:flex;justify-content:space-between;align-items:center;padding:21px max(20px,calc((100vw - 1130px)/2));background:#071326f5;border-bottom:1px solid #274367;position:sticky;top:0;z-index:9}
+.logo{font-size:24px;font-weight:900;letter-spacing:-.5px}.logo span{color:#62a9ff}small, .sub{color:#91abc5}.status{color:#ff8d8d;background:#ff64641d;border:1px solid #fb616157;border-radius:18px;font-size:11px;letter-spacing:.08em;padding:10px 13px;font-weight:800;animation:pulse 1.3s infinite}
+main{max-width:1170px;padding:25px 20px 55px;margin:auto}h1{font-size:30px;margin:0 0 8px;letter-spacing:-.6px}h2{font-size:17px;margin:0 0 17px}.lead{color:#a3bad2;margin:0}.hero{background:linear-gradient(135deg,#132c49,#0c172a);padding:25px;border:1px solid #22476e;border-radius:19px;box-shadow:0 18px 60px #0006}.alert{margin-top:21px;padding:13px 16px;border-radius:11px;border:1px solid #ec525970;background:#f14c5524;color:#ffc2c5;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:18px 0}.card,.panel{background:#0b182b;border:1px solid #1c3655;border-radius:15px;padding:21px;box-shadow:0 10px 25px #0003}
+.label{color:#98b3ce;text-transform:uppercase;letter-spacing:.07em;font-size:12px;font-weight:700}.big{font-size:43px;font-weight:850;letter-spacing:-1px;margin:16px 0 5px}.red{color:#ff6976}.amber{color:#ffd06f}.green{color:#73e5ad}.muted{color:#8ca7bf;font-size:13px}
+.detail{display:grid;grid-template-columns:1.24fr .76fr;gap:17px}.terminal{font:13px/1.65 ui-monospace,Consolas,monospace;max-height:338px;min-height:338px;overflow:auto;background:#030a14;border-radius:10px;border:1px solid #1d344c;padding:15px}.logline{margin-bottom:7px}.time{color:#74aadb}.err{color:#ff818e}.warn{color:#f9c967}.info{color:#74e6b4}
+.progress{margin-top:24px;background:#1b2c40;border-radius:30px;height:13px;overflow:hidden}.fill{background:linear-gradient(90deg,#fe595d,#ffbd5a);height:100%;width:95%;animation:meter 2s ease-in-out infinite alternate}.between{display:flex;justify-content:space-between;gap:10px;margin-top:8px;color:#9eb4c9;font-size:13px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:20px}.tile{background:#0e2238;border:1px solid #213e5e;border-radius:10px;padding:14px}.tile strong{font-size:27px;display:block;margin-top:7px}
+@keyframes meter{from{width:89%}to{width:99%}}@keyframes pulse{50%{opacity:.55;box-shadow:0 0 20px #ff4f4d55}}
+#overlay{position:fixed;inset:0;z-index:50;background:#03060bd4;display:none;place-items:center;padding:18px;backdrop-filter:blur(4px)}#overlay.active{display:grid}
+.dialog{width:min(540px,100%);background:#101d30;border:1px solid #ff7273a8;border-radius:16px;box-shadow:0 25px 100px #000a;overflow:hidden;animation:appear .16s ease-out}
+@keyframes appear{from{transform:scale(.94);opacity:.4}to{transform:scale(1);opacity:1}}
+.dialoghead{display:flex;justify-content:space-between;background:#7c242b3b;border-bottom:1px solid #ff727348;padding:18px 20px;color:#ffb1b6;font-weight:800}.dialogbody{padding:23px 20px 21px;line-height:1.6;color:#cdddee}.code{font:12px ui-monospace,monospace;background:#050b16;border:1px solid #284058;border-radius:8px;margin-top:15px;padding:12px;color:#b8dfff}
+.actions{padding:0 20px 20px;display:flex;justify-content:flex-end;gap:9px}.actions button{border:0;border-radius:9px;padding:11px 17px;background:#2563eb;color:white;font-weight:750;cursor:pointer}.actions button.secondary{background:#293b54}
+#toast{position:fixed;right:20px;bottom:20px;z-index:6;color:#f2b7b7;border:1px solid #e5616d70;background:#281827;padding:13px 16px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none}#toast.on{opacity:1;transform:translateY(0)}
+.flicker{animation:flicker .15s 3}@keyframes flicker{50%{filter:hue-rotate(70deg) brightness(1.3);transform:translateX(2px)}}footer{margin-top:24px;color:#5e819f;font:12px ui-monospace,monospace}
+@media(max-width:950px){.cards{grid-template-columns:repeat(2,1fr)}.detail{grid-template-columns:1fr}}@media(max-width:560px){nav{padding:16px}.status{font-size:9px;padding:8px}.cards{grid-template-columns:1fr 1fr}.card{padding:16px}.big{font-size:31px}.hero{padding:18px}h1{font-size:23px}.tiles{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<nav><div class="logo">Test<span>Pilot</span> <small style="font-size:12px;margin-left:10px">AI QUALITY LAB</small></div><div class="status">● SYSTEM INSTABILITY DETECTED</div></nav>
+<main>
+<section class="hero"><h1>AI Test Case Monitoring Dashboard</h1><p class="lead">Generation activity, review queues, execution readiness and anomaly diagnostics</p><div class="alert">⚠ CRITICAL ALERT — AI generation limit exceeded. Recursive case expansion detected across validation workflows.</div></section>
+<div class="cards">
+<div class="card"><div class="label">Baseline test cases</div><div class="big">36</div><div class="muted">Original scope</div></div>
+<div class="card"><div class="label">AI-generated test cases</div><div class="big red" id="count">3,600</div><div class="muted">Unexpected overflow</div></div>
+<div class="card"><div class="label">Pending human review</div><div class="big amber" id="pending">3,564</div><div class="muted">Verification queue saturated</div></div>
+<div class="card"><div class="label">AI system health</div><div class="big red" style="font-size:32px">CRITICAL</div><div class="muted">Auto recovery unsuccessful</div></div>
+</div>
+<div class="detail">
+<section class="panel"><h2>Live Diagnostic Feed <span class="red" style="font-size:12px">● LIVE</span></h2><div class="terminal" id="logs"></div></section>
+<section class="panel"><h2>Resource &amp; Queue Monitor</h2><p class="muted">Generation throughput is outpacing reviewer capacity. Automatic deduplication attempts remain unstable.</p><div class="progress"></div><div class="progress"><div class="fill"></div></div><div class="between"><span>Queue utilization</span><strong class="red" id="usage">95%</strong></div>
+<div class="tiles">
+<div class="tile"><div class="label">Execution threads</div><strong id="threads">128</strong></div>
+<div class="tile"><div class="label">Duplicate variants</div><strong class="red" id="duplicates">2,914</strong></div>
+<div class="tile"><div class="label">Auto retries</div><strong class="amber" id="retries">47</strong></div>
+<div class="tile"><div class="label">Recovered workers</div><strong class="green" id="recovered">08</strong></div>
+</div>
+<footer>ENVIRONMENT: AI-LAB-MONITOR<br>INCIDENT ID: TP-AI-2026-1104-036<br>LAST SYNC: <span id="sync">--:--:--</span></footer>
+</section>
+</div>
+</main>
+<div id="toast">⚠ Validation worker failed. Retrying job batch...</div>
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="dialogtitle"><div class="dialog"><div class="dialoghead"><span id="dialogtitle">⚠ AI SYSTEM ERROR</span><span>ERR-500</span></div><div class="dialogbody"><strong id="msgtitle"></strong><p id="msgtext"></p><div class="code" id="code"></div></div><div class="actions"><button class="secondary" onclick="closePopup()">Dismiss</button><button onclick="closePopup()">Acknowledge</button></div></div></div>
+<script>
+const $=id=>document.getElementById(id),fmt=n=>n.toLocaleString('en-IN');let n=3600,p=3564,d=2914,r=47;
+const entries=[
+['ERR','generation_worker: recursive prompt chain exceeded max_case_count'],
+['WARN','Review queue load > 95%, manual review backlog growing'],
+['ERR','Duplicate edge-case family detected in appointment booking flow'],
+['ERR','case_generator retried batch 36; generated 400 additional variants'],
+['WARN','Playwright execution planner paused due to unreviewed scenarios'],
+['ERR','Policy limiter unable to halt nested negative-case synthesis'],
+['WARN','Doctor availability tests waiting for review dependencies'],
+['INFO','Recovery thread resumed; queue remains saturated'],
+['ERR','AI output count diverges from original validation scope']
+];
+function line(t,m){let el=document.createElement('div');el.className='logline';let now=new Date().toLocaleTimeString('en-GB');el.innerHTML='<span class="time">['+now+']</span> <span class="'+(t==='ERR'?'err':t==='WARN'?'warn':'info')+'">['+t+']</span> '+m; $('logs').prepend(el);while($('logs').children.length>35)$('logs').lastElementChild.remove()}
+[['INFO','Monitor connected. Baseline case count = 36'],['WARN','AI generation surge detected: 3,600 total candidates'],['ERR','Unexpected recursive scenario expansion']].forEach(x=>line(...x));
+const errors=[
+['AI Generation Overflow','The generation engine exceeded the permitted limit. 36 baseline cases expanded into 3,600 candidates.','ERR_AI_RECURSIVE_GENERATION / batch 036'],
+['Review Queue Saturation','Human validation queue is no longer keeping pace with generated test cases. Pending approvals have exceeded the nominal threshold.','ERR_QUEUE_CAPACITY / utilization 99%'],
+['Case Deduplication Failure','Repeated positive, negative and edge-case scenarios are being added faster than duplicate detection can process them.','ERR_DEDUP_TIMEOUT / worker 07'],
+['Playwright Scheduler Warning','Execution scheduler paused unreviewed case batches after repeated dependency mismatches.','ERR_EXECUTION_WAIT / pending reviewer approval'],
+['System Recovery Interrupted','The automatic recovery worker failed to restore the generation limiter. Monitoring will continue in degraded mode.','ERR_RECOVERY_ATTEMPT / retry scheduled']
+];
+function showPopup(){if($('overlay').classList.contains('active'))return;let e=errors[Math.floor(Math.random()*errors.length)];$('msgtitle').textContent=e[0];$('msgtext').textContent=e[1];$('code').textContent=e[2];$('overlay').classList.add('active')}
+function closePopup(){$('overlay').classList.remove('active')}
+setInterval(()=>{n+=Math.floor(Math.random()*12)+1;p+=Math.floor(Math.random()*10)+1;d+=Math.floor(Math.random()*8);r+=Math.floor(Math.random()*4);$('count').textContent=fmt(n);$('pending').textContent=fmt(p);$('duplicates').textContent=fmt(d);$('retries').textContent=r;$('threads').textContent=122+Math.floor(Math.random()*31);$('usage').textContent=(93+Math.floor(Math.random()*7))+'%';$('sync').textContent=new Date().toLocaleTimeString();line(...entries[Math.floor(Math.random()*entries.length)]);if(Math.random()<.26){document.body.classList.add('flicker');setTimeout(()=>document.body.classList.remove('flicker'),550)}},1700);
+setTimeout(showPopup,3500);setInterval(showPopup,8500);
+setInterval(()=>{if($('overlay').classList.contains('active'))return;$('toast').classList.add('on');setTimeout(()=>$('toast').classList.remove('on'),2300)},6500);
+</script>
+</body></html>
