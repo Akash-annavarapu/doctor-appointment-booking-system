@@ -33,7 +33,7 @@ test("detects altered baseline and unsupported CI case mappings",()=>{
   assert.throws(()=>computeEvidenceSummary(changed),/baseline has drifted/);
   const changed2=structuredClone(observed);
   changed2.measuredExecution.generatedCaseMappings[0].caseId="AI-900";
-  assert.throws(()=>computeEvidenceSummary(changed2),/source-reviewed Playwright mapping/);
+  assert.throws(()=>computeEvidenceSummary(changed2),/Gemini source and reviewed Playwright mapping/);
 });
 
 test("rejects invented acceptance criteria and scores",()=>{
