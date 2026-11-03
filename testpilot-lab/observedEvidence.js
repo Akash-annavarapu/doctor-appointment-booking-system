@@ -65,13 +65,26 @@ function computeEvidenceSummary(input = record) {
       execution?.generatedCaseMappings?.length !== 4) {
     throw Error("Observed CI run reference differs from the verified archived evidence.");
   }
+  const archivedGemini=require("./evidence/gemini-us-017-2026-10-26.redacted.json");
+  if (archivedGemini.format !== "testpilot-original-gemini-output-redacted-v1" ||
+      archivedGemini.generatedBy !== "Google Gemini" ||
+      archivedGemini.storyId !== "US-017" ||
+      archivedGemini.receiptOmitted !== true ||
+      Object.hasOwn(archivedGemini, "receipt") ||
+      archivedGemini.originalExecutionStatus !== "NOT_RUN" ||
+      archivedGemini.cases?.length !== 4) {
+    throw Error("Genuine Gemini source archive is missing or not safely redacted.");
+  }
   const fixedSource=fs.readFileSync(path.join(__dirname,
     "../e2e/tests/generated-booking.api.spec.cjs"),"utf8");
   const ids=new Set();
   for(const [i,c] of execution.generatedCaseMappings.entries()){
+    const original=archivedGemini.cases[i];
     if(c.caseId !== "AI-00" + (i+1) || c.status !== "PASS" ||
+        !original || original.id !== c.caseId || original.type !== c.type ||
+        original.executionStatus !== "NOT_RUN" || original.reviewed !== false ||
         ids.has(c.caseId) || !fixedSource.includes('test("' + c.caseId + " ")) {
-      throw Error("Missing source-reviewed Playwright mapping: "+c.caseId);
+      throw Error("Missing authentic Gemini source and reviewed Playwright mapping: "+c.caseId);
     }
     ids.add(c.caseId);
   }
