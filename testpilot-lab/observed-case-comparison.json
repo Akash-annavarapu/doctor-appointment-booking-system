@@ -3,11 +3,12 @@
   "asOf": "2026-11-03",
   "assessment": {
     "status": "PRELIMINARY_ASSISTANT_TECHNICAL_REVIEW_UNSIGNED",
-    "modelSource": "Genuine Gemini candidates generated 2026-10-26; summarised in locally archived TestPilot_AI_Comparison_2026-10-26.md and docs/WEEK7_GEMINI_PLAYWRIGHT_EVIDENCE.md",
-    "rawModelExportsInRepository": false,
+    "modelSource": "Original US-017 Gemini export (SHA-256 in evidence archive) dated 2026-10-26, plus archived preliminary 26 October three-story AI/manual comparison; original US-001/US-005 raw outputs not located in this repository.",
     "independentlyHumanReviewed": false,
     "humanRatingsRecorded": false,
-    "caveat": "These are preliminary explicit-assertion design judgments, not measured AI-test success rates, validated participant scores, or statistical comparisons."
+    "caveat": "These are preliminary explicit-assertion design judgments, not measured AI-test success rates, validated participant scores, or statistical comparisons.",
+    "completeThreeStoryRawModelExportsInRepository": false,
+    "redactedUS017OriginalArchived": true
   },
   "stories": [
     {
