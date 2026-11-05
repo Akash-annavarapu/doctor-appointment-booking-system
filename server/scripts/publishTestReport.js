@@ -77,6 +77,48 @@ async function getGitHubIdentity() {
   return body.value;
 }
 
+// Render's reporting ingress may throttle simultaneous CI jobs. Retry only
+// transient errors, respect Retry-After, and keep the report payload unchanged.
+const RETRYABLE_REPORT_STATUSES = new Set([429, 502, 503, 504]);
+const MAX_REPORT_ATTEMPTS = 5;
+function retryDelayMs(retryAfter, attempt, nowMs = Date.now()) {
+  let suggestedMs = NaN;
+  if (typeof retryAfter === "string" && retryAfter.trim()) {
+    const seconds = Number(retryAfter.trim());
+    suggestedMs = Number.isFinite(seconds) ? seconds * 1000
+      : Date.parse(retryAfter) - nowMs;
+  }
+  const fallback = 15000 * (2 ** attempt);
+  return Math.max(1000, Math.min(90000,
+    Number.isFinite(suggestedMs) && suggestedMs >= 0 ? suggestedMs : fallback));
+}
+
+async function sendReportWithRetry(endpoint, init, {
+  fetchImpl = fetch,
+  sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+} = {}) {
+  let lastError;
+  for (let attempt = 0; attempt < MAX_REPORT_ATTEMPTS; attempt++) {
+    let response;
+    try {
+      response = await fetchImpl(endpoint, {
+        ...init, signal: AbortSignal.timeout(45000)
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_REPORT_ATTEMPTS - 1)
+        await sleep(retryDelayMs(null, attempt));
+      continue;
+    }
+    if (response.ok) return;
+    lastError = new Error("Report ingestion returned HTTP " + response.status);
+    if (!RETRYABLE_REPORT_STATUSES.has(response.status)) break;
+    if (attempt < MAX_REPORT_ATTEMPTS - 1)
+      await sleep(retryDelayMs(response.headers?.get?.("retry-after"), attempt));
+  }
+  throw lastError;
+}
+
 async function publish() {
   const file = process.argv[2];
   const suite = process.argv[3] || "TestPilot-CI";
@@ -110,28 +152,13 @@ async function publish() {
   if (oidc) headers.Authorization = "Bearer " + oidc;
   else headers["X-TestPilot-Report-Token"] = shared;
 
-  let lastError;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetch(new URL("/api/reports/test-run", url), {
-        method: "POST",
-        headers,
-        body: JSON.stringify(report),
-        signal: AbortSignal.timeout(45000)
-      });
-      if (response.ok) {
-        console.log("Published " + report.summary.total + " measured test results.");
-        return;
-      }
-      lastError = new Error("Report ingestion returned HTTP " + response.status);
-      if (![429, 502, 503, 504].includes(response.status)) break;
-    } catch (error) { lastError = error; }
-    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 7000 * (attempt + 1)));
-  }
-  throw lastError;
+  await sendReportWithRetry(new URL("/api/reports/test-run", url), {
+    method: "POST", headers, body: JSON.stringify(report)
+  });
+  console.log("Published " + report.summary.total + " measured test results.");
 }
 
 if (require.main === module) {
   publish().catch(error => { console.error(error.message); process.exitCode = 1; });
 }
-module.exports = { toTestPilotReport };
+module.exports = { toTestPilotReport, retryDelayMs, sendReportWithRetry };
