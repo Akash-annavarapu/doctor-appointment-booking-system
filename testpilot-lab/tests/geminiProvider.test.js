@@ -161,6 +161,98 @@ test("Gemini free-tier rate limits are explained without exposing Google error d
 });
 
 
+test("Gemini retries HTTP 503 exactly twice with exponential backoff, then accepts real JSON", async () => {
+  const old = [process.env.AI_PROVIDER, process.env.GEMINI_API_KEY];
+  process.env.AI_PROVIDER = "gemini";
+  process.env.GEMINI_API_KEY = "synthetic-test-key";
+  const story = stories.find(item => item.id === "US-005");
+  let requests = 0;
+  const delays = [];
+  const requestsBodies = [];
+  try {
+    const output = await generateCases({
+      story, inspection: {},
+      fetchImpl: async (url, options) => {
+        requests++;
+        assert.match(url, /generativelanguage\\.googleapis\\.com/);
+        requestsBodies.push(options.body);
+        if (requests < 3) return new Response(JSON.stringify({
+          error: { message: "PRIVATE PROVIDER DIAGNOSTIC" }
+        }), { status: 503 });
+        return new Response(JSON.stringify({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ cases: sampleCases() }) }] } }]
+        }), { status: 200 });
+      },
+      sleepImpl: async ms => { delays.push(ms); }
+    });
+    assert.equal(requests, 3);
+    assert.deepEqual(delays, [1000, 2000]);
+    assert.equal(new Set(requestsBodies).size, 1);
+    assert.equal(output.length, 4);
+    assert.ok(output.every(item => item.executionStatus === "NOT_RUN"));
+  } finally {
+    if (old[0] === undefined) delete process.env.AI_PROVIDER; else process.env.AI_PROVIDER = old[0];
+    if (old[1] === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = old[1];
+  }
+});
+
+test("Gemini stops after three HTTP 503 responses without fabricating cases", async () => {
+  const old = [process.env.AI_PROVIDER, process.env.GEMINI_API_KEY];
+  process.env.AI_PROVIDER = "gemini";
+  process.env.GEMINI_API_KEY = "synthetic-test-key";
+  const story = stories.find(item => item.id === "US-005");
+  let requests = 0;
+  const delays = [];
+  try {
+    await assert.rejects(generateCases({
+      story, inspection: {},
+      fetchImpl: async () => {
+        requests++;
+        return new Response(JSON.stringify({
+          error: { message: "PRIVATE PROVIDER DIAGNOSTIC" }
+        }), { status: 503 });
+      },
+      sleepImpl: async ms => { delays.push(ms); }
+    }), error => {
+      assert.equal(error.status, 502);
+      assert.match(error.message, /Gemini provider returned HTTP 503/);
+      assert.doesNotMatch(error.message, /PRIVATE PROVIDER DIAGNOSTIC/);
+      return true;
+    });
+    assert.equal(requests, 3);
+    assert.deepEqual(delays, [1000, 2000]);
+  } finally {
+    if (old[0] === undefined) delete process.env.AI_PROVIDER; else process.env.AI_PROVIDER = old[0];
+    if (old[1] === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = old[1];
+  }
+});
+
+test("Gemini never retries quota, credentials or request validation errors", async () => {
+  const old = [process.env.AI_PROVIDER, process.env.GEMINI_API_KEY];
+  process.env.AI_PROVIDER = "gemini";
+  process.env.GEMINI_API_KEY = "synthetic-test-key";
+  const story = stories.find(item => item.id === "US-005");
+  try {
+    for (const status of [429, 401, 403, 404, 400]) {
+      let requests = 0;
+      const delays = [];
+      await assert.rejects(generateCases({
+        story, inspection: {},
+        fetchImpl: async () => {
+          requests++;
+          return new Response("{}", { status });
+        },
+        sleepImpl: async ms => { delays.push(ms); }
+      }), error => error.status === 502);
+      assert.equal(requests, 1, "No extra Gemini request for HTTP " + status);
+      assert.deepEqual(delays, []);
+    }
+  } finally {
+    if (old[0] === undefined) delete process.env.AI_PROVIDER; else process.env.AI_PROVIDER = old[0];
+    if (old[1] === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = old[1];
+  }
+});
+
 test("readiness diagnoses missing Gemini variables by name without exposing values", async () => {
   const old = [process.env.AI_PROVIDER, process.env.GEMINI_API_KEY, process.env.LAB_ACCESS_CODE];
   process.env.AI_PROVIDER = "gemini";
