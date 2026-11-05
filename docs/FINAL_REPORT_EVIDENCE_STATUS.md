@@ -1,4 +1,8 @@
-# TestPilot faculty final report — verified evidence and completion gate
+# TestPilot faculty final report — historical readiness gate and 6 Nov update
+
+> **6 November 2026 project-team update:** The team reports completion of human review, reviewer verification/sign-off, and peer usability correction activities (Tasks 1-3). For meeting tracking they are marked **TEAM-CONFIRMED COMPLETE**, distinct from **INDEPENDENTLY VERIFIED EVIDENCE**. The latest accessible archived review JSONs contain one saved reviewer per story, `identityVerified: false`, and usability records with timing/task discrepancies. Actual signed confirmations and reconciled appendices were not present in the files inspected here. Do not infer external review or faculty approval from the team's completion statement. The technical Tasks 4-6 are documented with verified [CI run #42131317272](https://github.com/Akash-annavarapu/doctor-appointment-booking-system/actions/runs/42131317272). For the current call, use the [6 Nov mentor-call final report](./faculty-submission/TestPilot_Final_Mentor_Call_Report_2026-11-06.md); the dated 31 October material below is retained as historical evidence.
+
+---
 
 **Course:** BITS Pilani, WILP, BSc Design and Computing, BSDCH ZC229T  
 **Report cut-off:** 31 October 2026  
