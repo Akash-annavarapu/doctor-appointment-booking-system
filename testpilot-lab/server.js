@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const stories = require("./user-stories.json");
+const archivedUs001Review = require("./archive-us001-review.json");
 const { CHECKS, checksForStory, executeStoryChecks } = require("./verifiedChecks");
 const { issueReceipt, verifyReceipt, validateApprovedCases, executeGeneratedCases } = require("./generatedCaseRunner");
 const { compareGeneratedWithManual } = require("./evaluation");
@@ -19,7 +20,7 @@ const hitTimes = new Map();
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMITS = Object.freeze({ generate: 4, execute: 20, "execute-generated": 12,
   evaluate: 15, "browser-plan": 15, review: 30, "execute-reviewed": 12,
-  "browser-plan-reviewed": 15, "peer-study": 30 });
+  "browser-plan-reviewed": 15, "peer-study": 30, "import-review-draft": 15 });
 
 class ApiError extends Error {
   constructor(status, message, retryAfterSeconds) {
@@ -436,6 +437,41 @@ async function handle(req, res) {
   if (req.method === "GET" && pathname === "/api/traceability") {
     try { return json(res, 200, { success: true, ...buildTraceability() }); }
     catch { return json(res, 503, { success: false, message: "Traceability catalog unavailable." }); }
+  }
+  // Reissue a short-lived signed receipt ONLY for the fixed, source-controlled
+  // archived original Gemini case set. This is not a new model generation or a
+  // human review. Imported edits remain separate, unapproved drafts.
+  if (req.method === "POST" && pathname === "/api/import-review-draft") {
+    try {
+      const payload = await readBody(req, 10000);
+      checkAccessCode(payload.accessCode);
+      takeRateLimit(req.socket.remoteAddress || "unknown", "import-review-draft");
+      if (payload.storyId !== "US-001") throw new ApiError(400, "Only the archived US-001 case set is available.");
+      const source = archivedUs001Review.originalModelOutput;
+      if (source.storyId !== "US-001" || !Array.isArray(source.cases) ||
+          source.cases.length !== 4 || source.cases.some(item =>
+            item.executionStatus !== "NOT_RUN" || item.reviewed !== false)) {
+        throw new ApiError(500, "Archived case-set integrity check failed.");
+      }
+      const targetUrl = checkTarget(source.targetUrl);
+      const originalCases = structuredClone(source.cases);
+      return json(res, 200, {
+        ...source,
+        cases: originalCases,
+        success: true,
+        importedArchive: true,
+        archiveSourceFile: archivedUs001Review.sourceFile,
+        archiveSourceSha256: archivedUs001Review.sourceFileSha256,
+        archiveStudyStatus: "ARCHIVED_REAL_GEMINI_OUTPUT_WITH_AI_PREPARED_DRAFT",
+        receipt: issueReceipt("US-001", targetUrl, originalCases),
+        proposedCaseReviews: archivedUs001Review.proposedCaseReviews,
+        proposedAcceptanceCriteriaNotes: archivedUs001Review.proposedAcceptanceCriteriaNotes,
+        note: "This restores the original archived Gemini output, not a new generation. AI-prepared corrections are unsigned drafts; actual review choices must be made by a person."
+      });
+    } catch (error) {
+      return json(res, error instanceof ApiError ? error.status : 400,
+        { success: false, message: error.message || "Unable to load the review draft." });
+    }
   }
   if (req.method === "POST" && pathname === "/api/peer-study") {
     try {
