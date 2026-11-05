@@ -174,7 +174,7 @@ test("Gemini retries HTTP 503 exactly twice with exponential backoff, then accep
       story, inspection: {},
       fetchImpl: async (url, options) => {
         requests++;
-        assert.match(url, /generativelanguage\\.googleapis\\.com/);
+        assert.ok(url.startsWith("https://generativelanguage.googleapis.com/"));
         requestsBodies.push(options.body);
         if (requests < 3) return new Response(JSON.stringify({
           error: { message: "PRIVATE PROVIDER DIAGNOSTIC" }
