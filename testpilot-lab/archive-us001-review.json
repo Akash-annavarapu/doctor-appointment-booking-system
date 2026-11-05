@@ -1,0 +1,194 @@
+{
+  "format": "testpilot-archived-review-draft-v1",
+  "sourceFile": "testpilot-us-001-not-run (5).json",
+  "sourceFileSha256": "f8e7c424a9bdb4b1c84049c78d7216c8632927eab884ffc2df8793d9eda18335",
+  "sourceGeneratedAt": "2026-11-05T22:05:49.888Z",
+  "documentType": "TestPilot AI-assisted proposed case review",
+  "reviewStatus": "DRAFT_NOT_HUMAN_REVIEWED_NOT_SIGNED",
+  "originalModelOutput": {
+    "success": true,
+    "storyId": "US-001",
+    "targetUrl": "https://doctor-appointment-frontend-9dbs.onrender.com/",
+    "inspection": {
+      "inspectedAt": "2026-11-05T22:05:43.333Z",
+      "inspectedUrl": "https://doctor-appointment-frontend-9dbs.onrender.com/",
+      "inspectionStatus": "PARTIAL",
+      "page": {
+        "title": "TestPilot | Doctor Appointment Booking",
+        "reactRootDetected": true
+      },
+      "publicDoctorCatalog": {
+        "available": false,
+        "approvedCount": null,
+        "specialties": []
+      },
+      "evidenceScope": "PARTIAL: Public doctor catalog unavailable or invalid. Generated cases are based on documented routes and acceptance criteria only. Unavailable live endpoints are NOT verified. No authenticated workflows were crawled."
+    },
+    "scenarioCounts": {
+      "positive": 1,
+      "negative": 2,
+      "edge": 1
+    },
+    "coverageWarnings": [],
+    "generatedBy": "Google Gemini",
+    "model": "gemini-3.5-flash-lite",
+    "promptVersion": "proposal-v2-2026-10-31",
+    "promptVariant": "baseline",
+    "generatedAt": "2026-11-05T22:05:49.888Z",
+    "executionStatus": "NOT_RUN",
+    "cases": [
+      {
+        "id": "AI-001",
+        "title": "Successful registration with valid unique details",
+        "type": "positive",
+        "scenarioGroup": "positive",
+        "priority": "P0",
+        "preconditions": "Visitor is on the registration page and provides unique user details.",
+        "steps": [
+          "Send a POST request to /api/v1/auth/register with valid name, unique email, valid mobile number, and valid password.",
+          "Check the response status code and body."
+        ],
+        "testData": "Name: John Doe, Email: john.doe.unique@example.com, Mobile: +15552345678, Password: SecurePassword123",
+        "expectedResult": "Account is successfully created and a valid JWT token is returned in the response.",
+        "probeId": "NONE",
+        "executionStatus": "NOT_RUN",
+        "reviewed": false
+      },
+      {
+        "id": "AI-002",
+        "title": "Registration rejection due to missing required fields",
+        "type": "negative",
+        "scenarioGroup": "negative",
+        "priority": "P1",
+        "preconditions": "Visitor attempts to register without filling out all mandatory fields.",
+        "steps": [
+          "Send a POST request to /api/v1/auth/register omitting the email field.",
+          "Inspect the HTTP response status and error message."
+        ],
+        "testData": "Name: John Doe, Email: , Mobile: +15552345678, Password: SecurePassword123",
+        "expectedResult": "Request is rejected with a 400 bad request status and an indication that missing fields are required.",
+        "probeId": "NONE",
+        "executionStatus": "NOT_RUN",
+        "reviewed": false
+      },
+      {
+        "id": "AI-003",
+        "title": "Registration rejection due to short password",
+        "type": "negative",
+        "scenarioGroup": "negative",
+        "priority": "P1",
+        "preconditions": "Visitor attempts to register using a password that does not meet minimum length criteria.",
+        "steps": [
+          "Send a POST request to /api/v1/auth/register with a password shorter than the required minimum length.",
+          "Inspect the HTTP response status and error message."
+        ],
+        "testData": "Name: John Doe, Email: john.short@example.com, Mobile: +15552345678, Password: 123",
+        "expectedResult": "Request is rejected with a 400 bad request status indicating the password is too short.",
+        "probeId": "NONE",
+        "executionStatus": "NOT_RUN",
+        "reviewed": false
+      },
+      {
+        "id": "AI-004",
+        "title": "Boundary test for password length at minimum threshold",
+        "type": "boundary",
+        "scenarioGroup": "edge",
+        "priority": "P2",
+        "preconditions": "Visitor attempts to register using a password exactly at the boundary length.",
+        "steps": [
+          "Send a POST request to /api/v1/auth/register with a password matching the exact minimum allowed length.",
+          "Verify if the account creation succeeds."
+        ],
+        "testData": "Name: Jane Doe, Email: jane.boundary@example.com, Mobile: +15558765432, Password: Pass1",
+        "expectedResult": "Account is successfully created if the length meets the minimum policy, or rejected appropriately if it falls under.",
+        "probeId": "NONE",
+        "executionStatus": "NOT_RUN",
+        "reviewed": false
+      }
+    ]
+  },
+  "proposedCaseReviews": [
+    {
+      "caseId": "AI-001",
+      "originalTitle": "Successful registration with valid unique details",
+      "decisionSuggestion": "REVISE_BEFORE_APPROVAL",
+      "issue": "Original positive case has +1 international phone format, while backend requires a 10-digit Indian phone starting 6–9. API JSON field is phone, not mobile.",
+      "proposedEdits": {
+        "testData": "Request JSON: {\"name\":\"John Doe\",\"email\":\"john.doe.unique@example.com\",\"phone\":\"9876543210\",\"password\":\"SecurePassword123\"}. Use unique synthetic email and isolated test database.",
+        "steps": [
+          "Prepare synthetic patient details with unique email and valid-format 10-digit Indian phone number.",
+          "POST JSON to /api/v1/auth/register using name, email, phone and password.",
+          "Assert HTTP 201; response success=true, token nonempty and user email matches.",
+          "Verify an account exists in the isolated database and that the password is not exposed in the response."
+        ],
+        "expectedResult": "HTTP 201; success=true; nonempty JWT token; created user details returned, without password."
+      },
+      "proposedReviewerNote": "This positive case targets valid registration but would fail with its original +1 phone data; corrected the field to phone and used a valid-format 10-digit Indian number so the success assertion is meaningful."
+    },
+    {
+      "caseId": "AI-002",
+      "originalTitle": "Registration rejection due to missing required fields",
+      "decisionSuggestion": "REVISE_BEFORE_APPROVAL",
+      "issue": "Omitted email is appropriate, but the original +1 phone creates an additional invalid input, so a 400 does not isolate the missing-email validation.",
+      "proposedEdits": {
+        "testData": "Request JSON: {\"name\":\"John Doe\",\"phone\":\"9876543210\",\"password\":\"SecurePassword123\"}. Do not include the email property.",
+        "steps": [
+          "Prepare otherwise valid synthetic data but omit the email property completely.",
+          "POST JSON to /api/v1/auth/register.",
+          "Assert HTTP 400 and response message says name, email, password and phone are required.",
+          "Check that the isolated database contains no newly registered account."
+        ],
+        "expectedResult": "HTTP 400; success=false; missing-required-fields validation message; no account created."
+      },
+      "proposedReviewerNote": "AI-002 covers missing required email but includes invalid phone data. I would change the phone to a valid value and omit email entirely so the failed registration tests the intended validation rule."
+    },
+    {
+      "caseId": "AI-003",
+      "originalTitle": "Registration rejection due to short password",
+      "decisionSuggestion": "REVISE_BEFORE_APPROVAL",
+      "issue": "Original short password is below minimum but has no precise 7-character boundary and an additional invalid phone; improving one invalid input at a time makes it reliable.",
+      "proposedEdits": {
+        "testData": "Request JSON: {\"name\":\"John Doe\",\"email\":\"john.short@example.com\",\"phone\":\"9876543210\",\"password\":\"abc1234\"}. Exactly seven characters.",
+        "steps": [
+          "Prepare otherwise valid synthetic registration fields with a seven-character password.",
+          "POST JSON to /api/v1/auth/register.",
+          "Assert HTTP 400 and a message stating password must be at least 8 characters.",
+          "Verify no patient account is created in the isolated database."
+        ],
+        "expectedResult": "HTTP 400; success=false; password minimum-length error; no account created."
+      },
+      "proposedReviewerNote": "This is an important negative case, but the extra invalid mobile value could confuse the result. I would use an otherwise valid registration and a seven-character password to check the minimum-length boundary."
+    },
+    {
+      "caseId": "AI-004",
+      "originalTitle": "Boundary test for password length at minimum threshold",
+      "decisionSuggestion": "REVISE_BEFORE_APPROVAL",
+      "issue": "The original sample password Pass1 contains five characters, not exactly eight; phone is invalid and expected result is conditional instead of specific.",
+      "proposedEdits": {
+        "testData": "Request JSON: {\"name\":\"Jane Doe\",\"email\":\"jane.boundary@example.com\",\"phone\":\"9876543210\",\"password\":\"Pass1234\"}. Exactly eight characters.",
+        "steps": [
+          "Prepare valid unique synthetic registration data with the password Pass1234 (eight characters).",
+          "POST JSON to /api/v1/auth/register.",
+          "Assert HTTP 201; response success=true and a JWT token is returned.",
+          "Verify account was created in an isolated database."
+        ],
+        "expectedResult": "HTTP 201; account created and JWT token returned, because an exactly eight-character password meets the minimum-length policy."
+      },
+      "proposedReviewerNote": "The original test claims to cover the eight-character minimum but supplies only five characters. I would correct the password to exactly eight, use a valid phone field and expect successful account creation."
+    }
+  ],
+  "proposedAcceptanceCriteriaNotes": [
+    {
+      "criterion": "Valid unique details create account and JWT",
+      "aiOriginalAssessment": "not_covered",
+      "manualAssessment": "requires human verification of TP-001 expected result",
+      "suggestedEvidence": "AI-001 and AI-004 are intended positive cases, but both original test data are invalid; AI-004 also misstates password boundary. TP-001 specifies valid registration, but independently check its full expected result for JWT verification."
+    },
+    {
+      "criterion": "Missing fields or short password are rejected.",
+      "aiOriginalAssessment": "not_covered",
+      "manualAssessment": "covered at scenario-design level by TP-002 and TP-003",
+      "suggestedEvidence": "AI-002 and AI-003 target required-field and weak-password rejection, but each original case includes an invalid US-format phone that confounds validation. TP-002 covers missing required registration data and TP-003 covers seven-character password rejection."
+    }
+  ]
+}
