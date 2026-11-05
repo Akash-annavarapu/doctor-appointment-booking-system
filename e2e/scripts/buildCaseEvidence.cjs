@@ -62,6 +62,7 @@ function combineStatuses(statuses) {
   if (!statuses.length) return "NOT_RECORDED";
   if (statuses.some(s => s === "FAIL")) return "FAIL";
   if (statuses.every(s => s === "SKIPPED")) return "SKIPPED";
+  if (statuses.every(s => s === "NOT_RECORDED")) return "NOT_RECORDED";
   if (statuses.some(s => s === "NOT_RECORDED" || s === "SKIPPED")) return "PARTIAL";
   if (statuses.some(s => s === "PASS_WITH_RETRY")) return "PASS_WITH_RETRY";
   return "PASS";
