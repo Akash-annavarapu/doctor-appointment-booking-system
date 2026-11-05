@@ -27,8 +27,11 @@ jobs:
         run: npm ci
       - name: Test
         run: npm test -- --reporter=json --outputFile=/tmp/testpilot-frontend.json
+      - name: Build
+        run: npm run build
       - name: Publish verified frontend run
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
         env:
           TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
           REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
@@ -36,8 +39,14 @@ jobs:
           if [ -f /tmp/testpilot-frontend.json ]; then
             node ../server/scripts/publishTestReport.js /tmp/testpilot-frontend.json frontend-vitest
           fi
-      - name: Build
-        run: npm run build
+      - name: Preserve measured frontend report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testpilot-frontend-measured-json
+          path: /tmp/testpilot-frontend.json
+          if-no-files-found: warn
+          retention-days: 14
 
   playwright:
     name: Playwright Chromium + isolated generated-case API tests
@@ -96,6 +105,7 @@ jobs:
           fi
       - name: Publish verified browser test results
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
         env:
           TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
           REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
@@ -103,6 +113,14 @@ jobs:
           if [ -f /tmp/testpilot-playwright-jest.json ]; then
             node server/scripts/publishTestReport.js /tmp/testpilot-playwright-jest.json playwright-chromium
           fi
+      - name: Preserve measured browser JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testpilot-playwright-measured-json
+          path: /tmp/testpilot-playwright-jest.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload HTML report, screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -148,6 +166,7 @@ jobs:
         run: npm test -- --json --outputFile=/tmp/testpilot-backend.json
       - name: Publish verified backend run
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
         env:
           TESTPILOT_REPORT_API_URL: ${{ vars.TESTPILOT_REPORT_API_URL }}
           REPORT_INGEST_TOKEN: ${{ secrets.REPORT_INGEST_TOKEN }}
@@ -155,3 +174,11 @@ jobs:
           if [ -f /tmp/testpilot-backend.json ]; then
             node scripts/publishTestReport.js /tmp/testpilot-backend.json backend-jest
           fi
+      - name: Preserve measured backend report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testpilot-backend-measured-json
+          path: /tmp/testpilot-backend.json
+          if-no-files-found: warn
+          retention-days: 14
