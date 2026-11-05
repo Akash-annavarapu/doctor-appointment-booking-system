@@ -245,7 +245,8 @@ const PROMPT_VARIANTS = Object.freeze({
   assertions: "Prefer concrete expected API codes, exact state transitions and verifiable oracles; avoid vague success predictions."
 });
 
-async function generateCases({ story, inspection, promptVariant = "baseline", fetchImpl = fetch }) {
+async function generateCases({ story, inspection, promptVariant = "baseline", fetchImpl = fetch,
+  sleepImpl = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   if (!Object.hasOwn(PROMPT_VARIANTS, promptVariant))
     throw new ApiError(400, "Unknown reviewed prompt variant.");
   const { provider, model, key } = activeAiConfig();
@@ -290,19 +291,29 @@ async function generateCases({ story, inspection, promptVariant = "baseline", fe
     model, store: false, instructions, max_output_tokens: 6000, input,
     text: { format: { type: "json_schema", name: "testpilot_story_cases", strict: true, schema } }
   };
+  // Only Gemini HTTP 503 is transient-retried. Keep the prompt and model identical
+  // across attempts; the caller records a case set only after one valid response.
+  // HTTP 429 (quota), 400, 401, 403 and 404 must never be retried automatically.
   let response;
-  try {
-    response = await fetchImpl(url, {
-      method: "POST",
-      headers: isGemini
-        ? { "x-goog-api-key": key, "Content-Type": "application/json" }
-        : { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60000)
-    });
-  } catch {
-    throw new ApiError(502, (isGemini ? "Gemini" : "OpenAI") +
-      " generation provider is temporarily unreachable.");
+  const maxAttempts = isGemini ? 3 : 1;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      response = await fetchImpl(url, {
+        method: "POST",
+        headers: isGemini
+          ? { "x-goog-api-key": key, "Content-Type": "application/json" }
+          : { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(60000)
+      });
+    } catch {
+      throw new ApiError(502, (isGemini ? "Gemini" : "OpenAI") +
+        " generation provider is temporarily unreachable.");
+    }
+    if (!isGemini || response.status !== 503 || attempt === maxAttempts - 1) break;
+    // Release the failed response before retrying; do not log provider payloads or keys.
+    try { if (response.body) await response.body.cancel(); } catch { /* Ignore cleanup errors. */ }
+    await sleepImpl(1000 * (2 ** attempt));
   }
   if (!response.ok) {
     // Only interpret documented error codes. Never expose arbitrary provider messages
