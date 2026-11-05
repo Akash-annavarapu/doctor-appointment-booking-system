@@ -1,5 +1,11 @@
 # BITS Pilani TestPilot — Final academic documentation
 
+## 6 November 2026 mentor-call report (latest)
+
+Use **[TestPilot final mentor-call report, 6 November 2026](./TestPilot_Final_Mentor_Call_Report_2026-11-06.md)** for the current team progress update, 10 genuine Gemini runs, AI/manual technical comparison, verified main-branch Playwright results and Tasks 1-6 declaration.
+
+**Task tracking:** Tasks 1-3 are recorded as **team-confirmed completed activities**, with signed/human-authentication evidence not attached in the latest accessible export archive. Tasks 4-6 have verified technical implementation and CI evidence. Final faculty approval is not yet documented. Older files below are preserved historical snapshots, not the current summary.
+
 This folder versions the two documents previously prepared for the TestPilot BSc Design and Computing project. The checked-in Markdown files are full text extractions from the supplied Word source files; Word and PDF derivatives are rebuilt by [the faculty document publication workflow](../../.github/workflows/publish-faculty-documents.yml).
 
 | Document | Editable Word | PDF | Source text |
