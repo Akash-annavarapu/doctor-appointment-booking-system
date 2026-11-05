@@ -97,6 +97,15 @@ jobs:
         run: npm run test:unit --prefix e2e
       - name: Run Playwright Chromium browser tests
         run: npm test --prefix e2e
+      - name: Export measured fixed-check evidence with Gemini case crosswalk
+        if: always()
+        run: |
+          if [ -f e2e/artifacts/results.json ]; then
+            node e2e/scripts/buildCaseEvidence.cjs e2e/artifacts/results.json e2e/artifacts/task-4-6-case-evidence.json
+          else
+            echo "Playwright results.json is absent: cannot verify case outcomes" >&2
+            exit 1
+          fi
       - name: Convert measured Playwright report
         if: always()
         run: |
@@ -119,6 +128,14 @@ jobs:
         with:
           name: testpilot-playwright-measured-json
           path: /tmp/testpilot-playwright-jest.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve per-case measured evidence manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testpilot-source-reviewed-case-evidence
+          path: e2e/artifacts/task-4-6-case-evidence.json
           if-no-files-found: warn
           retention-days: 14
       - name: Upload HTML report, screenshots and traces
