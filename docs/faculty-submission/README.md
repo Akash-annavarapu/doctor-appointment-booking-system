@@ -1,8 +1,8 @@
 # BITS Pilani TestPilot — Final academic documentation
 
-## 6 November 2026 mentor-call report (latest)
+## Test Pilot Final Report — 6 November 2026 (latest)
 
-Use **[TestPilot final mentor-call report, 6 November 2026](./TestPilot_Final_Mentor_Call_Report_2026-11-06.md)** for the current team progress update, 10 genuine Gemini runs, AI/manual technical comparison, verified main-branch Playwright results and Tasks 1-6 declaration.
+Use **[Test Pilot Final Report](./Test_Pilot_Final_Report.md)** for the current project summary, genuine ten-run Gemini study, AI/manual comparison, Playwright results and six-task activity status.
 
 **Task tracking:** Tasks 1-3 are recorded as **team-confirmed completed activities**, with signed/human-authentication evidence not attached in the latest accessible export archive. Tasks 4-6 have verified technical implementation and CI evidence. Final faculty approval is not yet documented. Older files below are preserved historical snapshots, not the current summary.
 
