@@ -41,6 +41,8 @@ jobs:
         env:
           VITE_API_BASE_URL: http://127.0.0.1:4173/api/v1
         run: npm run build --prefix client
+      - name: Install backend dependencies for Playwright
+        run: npm install --prefix server --omit=dev --no-audit --no-fund
       - name: Install pinned Playwright
         run: npm install --prefix e2e --no-audit --no-fund
       - name: Install Chromium
