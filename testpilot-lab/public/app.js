@@ -198,6 +198,79 @@ function renderResult(data) {
     "All cases are NOT RUN until independently verified.");
 }
 
+
+function applyArchivedReviewDraft(data) {
+  if (!data.importedArchive || data.storyId !== "US-001" ||
+      !Array.isArray(data.proposedCaseReviews) ||
+      data.proposedCaseReviews.length !== data.cases.length) {
+    throw Error("The archived review draft is incomplete.");
+  }
+  const caseIds = new Set(data.cases.map(item => item.id));
+  for (const draft of data.proposedCaseReviews) {
+    if (!caseIds.has(draft.caseId)) throw Error("The draft case IDs do not match the archive.");
+    const card = [...caseBox.querySelectorAll(".test-card")]
+      .find(element => element.dataset.caseId === draft.caseId);
+    if (!card) throw Error("An archived test case is missing from the workspace.");
+    for (const [field, content] of Object.entries(draft.proposedEdits || {})) {
+      if (!["title", "preconditions", "testData", "steps", "expectedResult"].includes(field))
+        continue;
+      const editor = [...card.querySelectorAll(".review-field")]
+        .find(input => input.dataset.field === field);
+      if (!editor) continue;
+      const value = field === "steps" ? content.join("\n") : content;
+      if (typeof value !== "string" || value.length > editor.maxLength)
+        throw Error("An archived correction exceeds the editor's allowed length.");
+      editor.value = value;
+    }
+    card.querySelector(".review-notes").value = draft.proposedReviewerNote || "";
+    // A source-controlled proposal is not a real person's approval.
+    card.querySelector(".ai-case-decision").value = "DRAFT";
+  }
+  const evidenceRows = [...document.querySelectorAll(".peer-review-row")];
+  for (const [index, draft] of (data.proposedAcceptanceCriteriaNotes || []).entries()) {
+    const row = evidenceRows[index];
+    if (!row || draft.criterion !== currentPeerCriteria()[index])
+      throw Error("The archived acceptance-criteria notes do not match the selected story.");
+    const evidence = row.querySelector(".peer-review-evidence");
+    evidence.value = String(draft.suggestedEvidence || "").slice(0, 1000);
+    // Do not auto-select human coverage judgments.
+    row.querySelector(".peer-review-ai").value = "not_reviewed";
+    row.querySelector(".peer-review-manual").value = "not_reviewed";
+  }
+  document.querySelector("#review-message").textContent =
+    "Four archived AI correction drafts loaded. Original Gemini cases remain intact. " +
+    "Review/edit each suggestion and make your own Approve/Reject decisions before Save.";
+}
+
+document.querySelector("#import-us001-review-button").addEventListener("click", async () => {
+  const button = document.querySelector("#import-us001-review-button");
+  const status = document.querySelector("#import-us001-review-status");
+  button.disabled = true;
+  status.textContent = "Restoring the original four archived Gemini cases…";
+  status.className = "message";
+  try {
+    const data = await request("/api/import-review-draft", {
+      accessCode: document.querySelector("#access-code").value,
+      storyId: "US-001"
+    });
+    if (stories.some(item => item.id === "US-001")) {
+      select.value = "US-001";
+      displaySelectedStory();
+    }
+    renderResult(data);
+    applyArchivedReviewDraft(data);
+    status.textContent = "US-001 archive loaded: 4 original Gemini cases, " +
+      "4 AI-prepared correction drafts and 2 draft evidence notes. " +
+      "No human approvals or test results were created. Review and save within 30 minutes.";
+    status.className = "message success";
+  } catch (error) {
+    status.textContent = error.message;
+    status.className = "message error";
+  } finally {
+    button.disabled = false;
+  }
+});
+
 function setBusy(active, action) {
   generateButton.disabled = active;
   inspectButton.disabled = active;
